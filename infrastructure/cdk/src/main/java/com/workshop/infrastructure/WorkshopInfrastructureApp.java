@@ -1,4 +1,4 @@
-package com.unicorn.infrastructure;
+package com.workshop.infrastructure;
 
 import io.github.cdklabs.cdknag.AwsSolutionsChecks;
 import io.github.cdklabs.cdknag.NagPackSuppression;
@@ -7,12 +7,12 @@ import software.amazon.awscdk.App;
 import software.amazon.awscdk.Aspects;
 import java.util.List;
 
-public class UnicornInfrastructureApp {
+public class WorkshopInfrastructureApp {
 
     public static void main(final String[] args) {
         App app = new App();
 
-        var unicornInfrastructureStack = new UnicornInfrastructureStack(app, "UnicornInfrastructure");
+        var workshopInfrastructureStack = new WorkshopInfrastructureStack(app, "WorkshopInfrastructure");
 
         // Add CDK-NAG checks: https://github.com/cdklabs/cdk-nag
         // Add suppression to exclude certain findings that are not needed for Workshop environment
@@ -20,7 +20,7 @@ public class UnicornInfrastructureApp {
         var suppressionInfrastructure = List.of(
             new NagPackSuppression.Builder().id("AwsSolutions-VPC7").reason("Workshop environment does not need VPC flow logs").build()
         );
-        NagSuppressions.addStackSuppressions(unicornInfrastructureStack, suppressionInfrastructure);
+        NagSuppressions.addStackSuppressions(workshopInfrastructureStack, suppressionInfrastructure);
 
         app.synth();
     }

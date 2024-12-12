@@ -31,7 +31,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-                    <mainClass>com.unicorn.infrastructure.UnicornInfrastructureApp</mainClass>
+                    <mainClass>com.workshop.infrastructure.WorkshopInfrastructureApp</mainClass>
                 </configuration>
             </plugin>
         </plugins>
