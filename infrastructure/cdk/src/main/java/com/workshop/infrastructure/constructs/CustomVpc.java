@@ -1,0 +1,39 @@
+package com.workshop.infrastructure.constructs;
+
+import software.constructs.Construct;
+import software.amazon.awscdk.services.ec2.Vpc;
+import software.amazon.awscdk.services.ec2.IVpc;
+import software.amazon.awscdk.services.ec2.SubnetConfiguration;
+import software.amazon.awscdk.services.ec2.SubnetType;
+import java.util.Arrays;
+
+public class CustomVpc extends Construct {
+
+    private final IVpc vpc;
+
+    public CustomVpc(final Construct scope, final String id) {
+        super(scope, id);
+
+    vpc = Vpc.Builder.create(this, id)
+        .vpcName(id)
+        .maxAzs(1)  // Use 1 Availability Zone
+        .subnetConfiguration(Arrays.asList(
+            SubnetConfiguration.builder()
+                .name("Public")
+                .subnetType(SubnetType.PUBLIC)
+                .cidrMask(24)
+                .build(),
+            SubnetConfiguration.builder()
+                .name("Private")
+                .subnetType(SubnetType.PRIVATE_WITH_EGRESS)
+                .cidrMask(24)
+                .build()
+            ))
+        .natGateways(1)
+        .build();
+    }
+
+    public IVpc getVpc() {
+        return vpc;
+    }
+}
