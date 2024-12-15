@@ -50,7 +50,7 @@ public class WorkshopStack extends Stack {
         ideProps.setBootstrapTimeoutMinutes(30);
         ideProps.setTerminalOnStartup(true);
         ideProps.setExtensions(Arrays.asList(
-            "amazonwebservices.aws-toolkit-vscode",
+            // "amazonwebservices.aws-toolkit-vscode",
             // "amazonwebservices.amazon-q-vscode",
             "ms-azuretools.vscode-docker",
             "ms-kubernetes-tools.vscode-kubernetes-tools",

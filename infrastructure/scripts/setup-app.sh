@@ -1,7 +1,7 @@
 set -e
 
 mkdir -p ~/environment/unicorn-store-spring
-rsync -av ~/java-on-aws/apps/unicorn-store-spring/ ~/environment/unicorn-store-spring --exclude target --exclude src/test
+rsync -aq ~/java-on-aws/apps/unicorn-store-spring/ ~/environment/unicorn-store-spring --exclude target --exclude src/test 1>/dev/null
 cd ~/environment/unicorn-store-spring
 echo "target" >> .gitignore
 
@@ -10,6 +10,7 @@ git init -b main
 git config --global user.email "you@workshops.aws"
 git config --global user.name "Your Name"
 
+git config --local core.filemode false
 echo "target/*" >> .gitignore
 echo "*.jar" >> .gitignore
 git add .

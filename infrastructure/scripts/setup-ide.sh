@@ -31,11 +31,11 @@ npm install -g artillery
 artillery -v
 
 echo "Installing Java 8, 17 and 21 and setting 21 as default ..."
-sudo dnf install -y -q java-1.8.0-amazon-corretto-devel
+sudo dnf install -y -q java-1.8.0-amazon-corretto-devel >/dev/null
 java -version
-sudo dnf install -y -q java-17-amazon-corretto-devel
+sudo dnf install -y -q java-17-amazon-corretto-devel >/dev/null
 java -version
-sudo dnf install -y -q java-21-amazon-corretto-devel
+sudo dnf install -y -q java-21-amazon-corretto-devel >/dev/null
 java -version
 sudo update-alternatives --set java /usr/lib/jvm/java-21-amazon-corretto.x86_64/bin/java
 sudo update-alternatives --set javac /usr/lib/jvm/java-21-amazon-corretto.x86_64/bin/javac
@@ -73,8 +73,8 @@ cat << EOF | sudo tee /etc/docker/daemon.json
 EOF
 
 sudo systemctl restart docker 
-docker info --format '{{json .Driver}}'
-docker info --format '{{json .DriverStatus}}'
+# docker info --format '{{json .Driver}}'
+# docker info --format '{{json .DriverStatus}}'
 
 echo "Installing docker buildx ..."
 BUILDX_VERSION=$(curl --silent "https://api.github.com/repos/docker/buildx/releases/latest" |jq -r .tag_name)
@@ -124,4 +124,4 @@ source /etc/profile.d/workshop.sh
 aws configure set default.region ${AWS_REGION}
 aws configure get default.region
 
-env
+# env

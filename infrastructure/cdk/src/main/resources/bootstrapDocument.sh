@@ -59,7 +59,7 @@ source /etc/profile.d/workshop.sh
 echo "Installing Docker..."
 
 # Install docker and base package
-dnf install -y -q docker git
+dnf install -y -q docker git >/dev/null
 service docker start
 usermod -aG docker ec2-user
 
