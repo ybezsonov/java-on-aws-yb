@@ -191,21 +191,9 @@ public class WorkshopInfrastructure extends Construct {
             "Allow outbound PostgreSQL responses");
 
         databaseSecurityGroup.addIngressRule(
-            Peer.ipv4(vpc.getVpcDefaultSecurityGroup()),
+            Peer.ipv4("10.0.0.0/16"),
             Port.tcp(5432),
             "Allow Database Traffic from VPC");
-
-        // Add suppression directly to the security group resource
-        NagSuppressions.addResourceSuppressions(
-            databaseSecurityGroup,
-            Arrays.asList(
-                NagPackSuppression.builder()
-                    .id("AwsSolutions-EC23")
-                    .reason("Database security group is restricted to VPC CIDR")
-                    .build()
-            ),
-            true  // Apply to children
-        );
 
         return databaseSecurityGroup;
     }

@@ -4,6 +4,7 @@ import software.constructs.Construct;
 import software.amazon.awscdk.services.ec2.Vpc;
 import software.amazon.awscdk.services.ec2.SubnetConfiguration;
 import software.amazon.awscdk.services.ec2.SubnetType;
+import software.amazon.awscdk.services.ec2.IpAddresses;
 import java.util.Arrays;
 
 public class CustomVpc extends Construct {
@@ -15,6 +16,7 @@ public class CustomVpc extends Construct {
 
     vpc = Vpc.Builder.create(this, id)
         .vpcName(id)
+        .ipAddresses(IpAddresses.cidr("10.0.0.0/16"))
         .maxAzs(2)  // Use 2 Availability Zone
         .subnetConfiguration(Arrays.asList(
             SubnetConfiguration.builder()

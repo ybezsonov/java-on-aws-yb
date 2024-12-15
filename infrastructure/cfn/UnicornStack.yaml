@@ -31,8 +31,6 @@ Metadata:
         id: AwsSolutions-RDS6
       - reason: Workshop environment is ephemeral and the database should be deleted by the end of the workshop
         id: AwsSolutions-RDS10
-      - reason: Database security group is restricted to VPC CIDR
-        id: AwsSolutions-EC23
 Resources:
   UnicornVpcB410D40E:
     Type: AWS::EC2::VPC
@@ -283,21 +281,13 @@ Resources:
           IpProtocol: tcp
           ToPort: 5432
       SecurityGroupIngress:
-        - CidrIp:
-            Fn::GetAtt:
-              - UnicornVpcB410D40E
-              - DefaultSecurityGroup
+        - CidrIp: 10.0.0.0/16
           Description: Allow Database Traffic from VPC
           FromPort: 5432
           IpProtocol: tcp
           ToPort: 5432
       VpcId:
         Ref: UnicornVpcB410D40E
-    Metadata:
-      cdk_nag:
-        rules_to_suppress:
-          - reason: Database security group is restricted to VPC CIDR
-            id: AwsSolutions-EC23
   UnicornStackUnicornDatabaseSubnetsFC71DF6A:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -369,7 +359,7 @@ Resources:
             - Fn::GetAtt:
                 - UnicornStackUnicornDatabase6FE2DF4E
                 - Endpoint.Address
-            - :-1.8881545897087853E289:5432/unicorns
+            - :-1.8881545897087842E289:5432/unicorns
   UnicornStackUnicornEventBus168F98DC:
     Type: AWS::Events::EventBus
     Properties:
