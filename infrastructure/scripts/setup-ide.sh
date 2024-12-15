@@ -30,7 +30,7 @@ cdk version
 npm install -g artillery
 artillery -v
 
-echo "Installing Java 8, 17 and 21 and sessting 21 as default ..."
+echo "Installing Java 8, 17 and 21 and setting 21 as default ..."
 sudo dnf install -y -q java-1.8.0-amazon-corretto-devel
 java -version
 sudo dnf install -y -q java-17-amazon-corretto-devel

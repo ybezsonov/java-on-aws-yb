@@ -1,7 +1,7 @@
 set -e
 
 mkdir -p ~/environment/unicorn-store-spring
-rsync -av ~/java-on-aws/unicorn-store-spring/ ~/environment/unicorn-store-spring --exclude target --exclude src/test
+rsync -av ~/java-on-aws/apps/unicorn-store-spring/ ~/environment/unicorn-store-spring --exclude target --exclude src/test
 cd ~/environment/unicorn-store-spring
 echo "target" >> .gitignore
 
