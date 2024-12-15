@@ -644,6 +644,11 @@ Resources:
             - ""
             - - "arn:"
               - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
               - :iam::aws:policy/ReadOnlyAccess
         - Fn::Join:
             - ""
@@ -1104,9 +1109,9 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
+            type: String
             default: ""
             description: (Optional) Custom bootstrap script to run.
-            type: String
         mainSteps:
           - inputs:
               runCommand:
@@ -1352,23 +1357,7 @@ Resources:
                       /opt/aws/bin/cfn-signal -e $exit_code '${waitConditionHandleUrl}'
 
                       exit $exit_code
-                    - splashUrl: ""
-                      instanceIamRoleArn:
-                        Fn::GetAtt:
-                          - WorkshopUserRole2CD0A22F
-                          - Arn
-                      readmeUrl: ""
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
-                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
-                      domain:
-                        Fn::GetAtt:
-                          - VSCodeIdeIdeDistribution613960F4
-                          - DomainName
-                      installGitea: echo bootstrapGitea was not provided
-                      terminalOnStartup: "true"
-                      environmentContentsZip: ""
-                      passwordName:
+                    - passwordName:
                         Fn::Join:
                           - "-"
                           - - Fn::Select:
@@ -1404,6 +1393,22 @@ Resources:
                       codeServerVersion: 4.95.3
                       instanceIamRoleName:
                         Ref: WorkshopUserRole2CD0A22F
+                      splashUrl: ""
+                      instanceIamRoleArn:
+                        Fn::GetAtt:
+                          - WorkshopUserRole2CD0A22F
+                          - Arn
+                      readmeUrl: ""
+                      waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
+                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                      domain:
+                        Fn::GetAtt:
+                          - VSCodeIdeIdeDistribution613960F4
+                          - DomainName
+                      installGitea: echo bootstrapGitea was not provided
+                      terminalOnStartup: "true"
+                      environmentContentsZip: ""
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -1416,12 +1421,12 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
-      InstanceId:
-        Ref: VSCodeIde6CDD4972
       LogGroupName:
         Ref: VSCodeIdeIdeLogGroup364F2B78
       SsmDocument:
         Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
+      InstanceId:
+        Ref: VSCodeIde6CDD4972
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   VSCodeIdeIdePasswordExporterFunctionServiceRoleAC3A4C16:

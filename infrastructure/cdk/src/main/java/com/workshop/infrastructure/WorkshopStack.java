@@ -42,6 +42,7 @@ public class WorkshopStack extends Stack {
             .assumedBy(new ServicePrincipal("ec2.amazonaws.com"))
             .managedPolicies(Arrays.asList(
                 ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"),
+                ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ContainerRegistryFullAccess"),
                 ManagedPolicy.fromAwsManagedPolicyName("ReadOnlyAccess"),
                 ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")
             ))
