@@ -34,14 +34,28 @@ import java.util.Arrays;
 import java.util.List;
 
 public class WorkshopInfrastructure extends Construct {
+    
+    private DatabaseSecret databaseSecret;
+    private StringParameter paramJdbc;
+    private EventBus eventBridge;
+
+    public DatabaseSecret getDatabaseSecret() {
+        return databaseSecret;
+    }
+    public StringParameter getParamJdbc() {
+        return paramJdbc;
+    }
+    public EventBus getEventBridge() {
+        return eventBridge;
+    }
 
     public WorkshopInfrastructure(final Construct scope, final String id, final Vpc vpc) {
         super(scope, id);
 
-        var databaseSecret = createDatabaseSecret();
+        databaseSecret = createDatabaseSecret();
         var databaseUrl = createDatabase(vpc, databaseSecret);
         
-        var paramJdbc = StringParameter.Builder.create(this, "SsmParameterDatabaseJDBCConnectionString")
+        paramJdbc = StringParameter.Builder.create(this, "SsmParameterDatabaseJDBCConnectionString")
             .allowedPattern(".*")
             .description("databaseJDBCConnectionString")
             .parameterName("databaseJDBCConnectionString")
@@ -49,7 +63,7 @@ public class WorkshopInfrastructure extends Construct {
             .tier(ParameterTier.STANDARD)
             .build();
 
-        var eventBridge = createEventBus();
+        eventBridge = createEventBus();
 
         var unicornStoreECR = Repository.Builder.create(this, "unicornstore-ecr")
             .repositoryName("unicorn-store-spring")
@@ -157,8 +171,8 @@ public class WorkshopInfrastructure extends Construct {
         var databaseSecurityGroup = createDatabaseSecurityGroup(vpc);
         
         var cluster = DatabaseCluster.Builder.create(this, "UnicornDatabase")
-            .engine(DatabaseClusterEngine.auroraPostgres(AuroraPostgresClusterEngineProps.builder().version(AuroraPostgresEngineVersion.VER_16_4).build()))
-            .serverlessV2MinCapacity(0.5)
+            .engine(DatabaseClusterEngine.auroraPostgres(AuroraPostgresClusterEngineProps.builder().version(AuroraPostgresEngineVersion.VER_16_6).build()))
+            .serverlessV2MinCapacity(0)
             .serverlessV2MaxCapacity(4)
             .writer(ClusterInstance.serverlessV2("writer"))        
             .enableDataApi(true)
@@ -172,10 +186,7 @@ public class WorkshopInfrastructure extends Construct {
             .credentials(Credentials.fromSecret(databaseSecret))
             .build();
 
-            var url = cluster.getClusterEndpoint().getHostname();
-            var port = cluster.getClusterEndpoint().getPort();
-            // return enpoint url
-            return String.format("%s:%s", url, port.toString());
+            return cluster.getClusterEndpoint().getHostname();
         }
 
     private SecurityGroup createDatabaseSecurityGroup(Vpc vpc) {

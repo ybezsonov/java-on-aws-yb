@@ -305,7 +305,7 @@ Resources:
       DatabaseName: unicorns
       EnableHttpEndpoint: true
       Engine: aurora-postgresql
-      EngineVersion: "16.4"
+      EngineVersion: "16.6"
       MasterUserPassword:
         Fn::Join:
           - ""
@@ -321,7 +321,7 @@ Resources:
       Port: 5432
       ServerlessV2ScalingConfiguration:
         MaxCapacity: 4
-        MinCapacity: 0.5
+        MinCapacity: 0
       VpcSecurityGroupIds:
         - Fn::GetAtt:
             - UnicornStackDatabaseSecurityGroupD015465F
@@ -359,7 +359,7 @@ Resources:
             - Fn::GetAtt:
                 - UnicornStackUnicornDatabase6FE2DF4E
                 - Endpoint.Address
-            - :-1.8881545897087842E289:5432/unicorns
+            - :5432/unicorns
   UnicornStackUnicornEventBus168F98DC:
     Type: AWS::Events::EventBus
     Properties:
@@ -624,6 +624,80 @@ Resources:
       PolicyName: UnicornStackunicornstoreekspodroleDefaultPolicy2240237A
       Roles:
         - Ref: UnicornStackunicornstoreekspodrole0982F9CB
+  WorkshopUserRole2CD0A22F:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AdministratorAccess
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/ReadOnlyAccess
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonSSMManagedInstanceCore
+      RoleName: java-on-aws-workshop-user
+  WorkshopUserRoleDefaultPolicy945C76B1:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: events:PutEvents
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - UnicornStackUnicornEventBus168F98DC
+                - Arn
+          - Action:
+              - secretsmanager:DescribeSecret
+              - secretsmanager:GetSecretValue
+            Effect: Allow
+            Resource:
+              - Ref: UnicornStackpostgres267CB88C
+              - Ref: VSCodeIdeIdePasswordSecret39AD78F3
+          - Action:
+              - ssm:DescribeParameters
+              - ssm:GetParameter
+              - ssm:GetParameterHistory
+              - ssm:GetParameters
+            Effect: Allow
+            Resource:
+              Fn::Join:
+                - ""
+                - - "arn:"
+                  - Ref: AWS::Partition
+                  - ":ssm:"
+                  - Ref: AWS::Region
+                  - ":"
+                  - Ref: AWS::AccountId
+                  - :parameter/
+                  - Ref: UnicornStackSsmParameterDatabaseJDBCConnectionString693CD16A
+          - Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - VSCodeIdeIdeLogGroup364F2B78
+                - Arn
+        Version: "2012-10-17"
+      PolicyName: WorkshopUserRoleDefaultPolicy945C76B1
+      Roles:
+        - Ref: WorkshopUserRole2CD0A22F
   AppSecurityGroupC396D536:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -727,45 +801,6 @@ Resources:
           - Arn
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
-  VSCodeIdeIdeRole21951A1F:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: ec2.amazonaws.com
-        Version: "2012-10-17"
-      ManagedPolicyArns:
-        - Fn::Join:
-            - ""
-            - - "arn:"
-              - Ref: AWS::Partition
-              - :iam::aws:policy/AmazonSSMManagedInstanceCore
-  VSCodeIdeIdeRoleDefaultPolicyB89C55CF:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyDocument:
-        Statement:
-          - Action:
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-            Effect: Allow
-            Resource:
-              Fn::GetAtt:
-                - VSCodeIdeIdeLogGroup364F2B78
-                - Arn
-          - Action:
-              - secretsmanager:DescribeSecret
-              - secretsmanager:GetSecretValue
-            Effect: Allow
-            Resource:
-              Ref: VSCodeIdeIdePasswordSecret39AD78F3
-        Version: "2012-10-17"
-      PolicyName: VSCodeIdeIdeRoleDefaultPolicyB89C55CF
-      Roles:
-        - Ref: VSCodeIdeIdeRole21951A1F
   VSCodeIdeIdeSecurityGroup69EC68AF:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -795,7 +830,7 @@ Resources:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - Ref: VSCodeIdeIdeRole21951A1F
+        - Ref: WorkshopUserRole2CD0A22F
     DependsOn:
       - UnicornVpcIGWE00ECEB8
       - UnicornVpcPrivateSubnet1DefaultRoute1C5D08BE
@@ -873,8 +908,8 @@ Resources:
       - UnicornVpcPublicSubnet2Subnet6BF05257
       - UnicornVpcB410D40E
       - UnicornVpcVPCGWC37B571E
-      - VSCodeIdeIdeRoleDefaultPolicyB89C55CF
-      - VSCodeIdeIdeRole21951A1F
+      - WorkshopUserRoleDefaultPolicy945C76B1
+      - WorkshopUserRole2CD0A22F
   VSCodeIdeIdeBootstrapFunctionServiceRole45BD56C6:
     Type: AWS::IAM::Role
     Properties:
@@ -900,7 +935,7 @@ Resources:
             Effect: Allow
             Resource:
               Fn::GetAtt:
-                - VSCodeIdeIdeRole21951A1F
+                - WorkshopUserRole2CD0A22F
                 - Arn
           - Action:
               - ec2:DescribeInstances
@@ -1069,9 +1104,9 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
-            type: String
-            description: (Optional) Custom bootstrap script to run.
             default: ""
+            description: (Optional) Custom bootstrap script to run.
+            type: String
         mainSteps:
           - inputs:
               runCommand:
@@ -1318,21 +1353,21 @@ Resources:
 
                       exit $exit_code
                     - splashUrl: ""
-                      instanceIamRoleName:
-                        Ref: VSCodeIdeIdeRole21951A1F
-                      codeServerVersion: 4.95.3
-                      customBootstrapScript: |
-                        date
-
-                        echo '=== Clone Git repository ==='
-                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
-                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
-
-                        echo '=== Setup IDE ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
-
-                        echo '=== Setup App ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
+                      instanceIamRoleArn:
+                        Fn::GetAtt:
+                          - WorkshopUserRole2CD0A22F
+                          - Arn
+                      readmeUrl: ""
+                      waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
+                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                      domain:
+                        Fn::GetAtt:
+                          - VSCodeIdeIdeDistribution613960F4
+                          - DomainName
+                      installGitea: echo bootstrapGitea was not provided
+                      terminalOnStartup: "true"
+                      environmentContentsZip: ""
                       passwordName:
                         Fn::Join:
                           - "-"
@@ -1354,21 +1389,21 @@ Resources:
                                         - Fn::Split:
                                             - ":"
                                             - Ref: VSCodeIdeIdePasswordSecret39AD78F3
-                      environmentContentsZip: ""
-                      terminalOnStartup: "true"
-                      installGitea: echo bootstrapGitea was not provided
-                      domain:
-                        Fn::GetAtt:
-                          - VSCodeIdeIdeDistribution613960F4
-                          - DomainName
-                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
-                      readmeUrl: ""
-                      instanceIamRoleArn:
-                        Fn::GetAtt:
-                          - VSCodeIdeIdeRole21951A1F
-                          - Arn
+                      customBootstrapScript: |
+                        date
+
+                        echo '=== Clone Git repository ==='
+                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
+                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
+
+                        echo '=== Setup IDE ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
+
+                        echo '=== Setup App ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
+                      codeServerVersion: 4.95.3
+                      instanceIamRoleName:
+                        Ref: WorkshopUserRole2CD0A22F
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -1381,12 +1416,12 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
-      SsmDocument:
-        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
-      LogGroupName:
-        Ref: VSCodeIdeIdeLogGroup364F2B78
       InstanceId:
         Ref: VSCodeIde6CDD4972
+      LogGroupName:
+        Ref: VSCodeIdeIdeLogGroup364F2B78
+      SsmDocument:
+        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   VSCodeIdeIdePasswordExporterFunctionServiceRoleAC3A4C16:

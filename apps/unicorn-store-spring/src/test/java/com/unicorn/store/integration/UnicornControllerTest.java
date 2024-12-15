@@ -30,7 +30,7 @@ class UnicornControllerTest {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16.4")
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16.6")
         .withDatabaseName("unicorns")
         .withUsername("postgres")
         .withPassword("postgres");

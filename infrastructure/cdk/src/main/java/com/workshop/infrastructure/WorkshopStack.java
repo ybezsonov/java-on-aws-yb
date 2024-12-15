@@ -12,6 +12,9 @@ import software.amazon.awscdk.DefaultStackSynthesizerProps;
 import software.amazon.awscdk.services.ec2.Port;
 import software.amazon.awscdk.services.ec2.Peer;
 import software.amazon.awscdk.services.ec2.SecurityGroup;
+import software.amazon.awscdk.services.iam.Role;
+import software.amazon.awscdk.services.iam.ServicePrincipal;
+import software.amazon.awscdk.services.iam.ManagedPolicy;
 
 import software.constructs.Construct;
 
@@ -29,13 +32,27 @@ public class WorkshopStack extends Stack {
             .synthesizer(new DefaultStackSynthesizer(DefaultStackSynthesizerProps.builder()
                 .generateBootstrapVersionRule(false)  // This disables the bootstrap version parameter
                 .build()))
-            .build());
+            .build());       
 
         var workshopVpc = new CustomVpc(this, "UnicornVpc");
 
         var workshopInfrastructure = new WorkshopInfrastructure(this, id, workshopVpc.getVpc());
 
+        Role userRole = Role.Builder.create(this, "WorkshopUserRole")
+            .assumedBy(new ServicePrincipal("ec2.amazonaws.com"))
+            .managedPolicies(Arrays.asList(
+                ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"),
+                ManagedPolicy.fromAwsManagedPolicyName("ReadOnlyAccess"),
+                ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")
+            ))
+            .roleName("java-on-aws-workshop-user")
+            .build();
+        workshopInfrastructure.getEventBridge().grantPutEventsTo(userRole);
+        workshopInfrastructure.getDatabaseSecret().grantRead(userRole);
+        workshopInfrastructure.getParamJdbc().grantRead(userRole);
+
         var ideProps = new VSCodeIde.VSCodeIdeProps();
+        ideProps.setRole(userRole);
         ideProps.setVpc(workshopVpc.getVpc());
         ideProps.setAvailabilityZone(workshopVpc.getVpc().getAvailabilityZones().get(0));
         // Create a security group to access an application at the port 8080
