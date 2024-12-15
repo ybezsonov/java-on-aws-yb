@@ -120,7 +120,8 @@ sudo yum -q install -y session-manager-plugin.rpm
 session-manager-plugin
 rm session-manager-plugin.rpm
 
-echo "export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)" | sudo tee -a /etc/profile.d/workshop.sh
-echo "export AWS_DEFAULT_REGION=${AWS_REGION}" | sudo tee -a /etc/profile.d/workshop.sh
+source /etc/profile.d/workshop.sh
 aws configure set default.region ${AWS_REGION}
 aws configure get default.region
+
+env

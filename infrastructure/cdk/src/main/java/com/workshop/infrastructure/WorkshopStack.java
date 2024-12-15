@@ -65,6 +65,9 @@ public class WorkshopStack extends Stack {
 
             echo '=== Setup IDE ==='
             sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
+
+            echo '=== Setup App ==='
+            sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
             """;
         ideProps.setBootstrapScript(bootstrapScript);
 

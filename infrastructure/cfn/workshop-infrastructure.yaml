@@ -585,8 +585,8 @@ Resources:
         parameters:
           BootstrapScript:
             description: (Optional) Custom bootstrap script to run.
-            default: ""
             type: String
+            default: ""
         mainSteps:
           - inputs:
               runCommand:
@@ -613,6 +613,7 @@ Resources:
                       export INSTANCE_IAM_ROLE_ARN="${instanceIamRoleArn}"
 
                       export AWS_REGION="$AWS_REGION"
+                      export AWS_DEFAULT_REGION="$AWS_REGION"
                       export EC2_PRIVATE_IP="$EC2_PRIVATE_IP"
 
                       export IDE_DOMAIN="${domain}"
@@ -644,7 +645,10 @@ Resources:
                       curl -LSsf -o /tmp/aws-cli.zip https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip
                       unzip -q -d /tmp /tmp/aws-cli.zip
                       /tmp/aws/install --update
-                      rm -rf /tmp/aws
+                      rm -rf /tmp/aws*
+
+                      echo "export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)" | sudo tee -a /etc/profile.d/workshop.sh
+                      source /etc/profile.d/workshop.sh
 
                       echo "Installing Docker..."
 
@@ -828,7 +832,17 @@ Resources:
                       /opt/aws/bin/cfn-signal -e $exit_code '${waitConditionHandleUrl}'
 
                       exit $exit_code
-                    - passwordName:
+                    - waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
+                      extensions: amazonwebservices.aws-toolkit-vscode,ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                      domain:
+                        Fn::GetAtt:
+                          - VSCodeIdeIdeDistribution613960F4
+                          - DomainName
+                      installGitea: echo bootstrapGitea was not provided
+                      terminalOnStartup: "true"
+                      environmentContentsZip: ""
+                      passwordName:
                         Fn::Join:
                           - "-"
                           - - Fn::Select:
@@ -849,25 +863,6 @@ Resources:
                                         - Fn::Split:
                                             - ":"
                                             - Ref: VSCodeIdeIdePasswordSecret39AD78F3
-                      environmentContentsZip: ""
-                      terminalOnStartup: "true"
-                      installGitea: echo bootstrapGitea was not provided
-                      domain:
-                        Fn::GetAtt:
-                          - VSCodeIdeIdeDistribution613960F4
-                          - DomainName
-                      extensions: amazonwebservices.aws-toolkit-vscode,ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
-                      readmeUrl: ""
-                      instanceIamRoleArn:
-                        Fn::GetAtt:
-                          - VSCodeIdeIdeRole21951A1F
-                          - Arn
-                      splashUrl: ""
-                      instanceIamRoleName:
-                        Ref: VSCodeIdeIdeRole21951A1F
-                      codeServerVersion: 4.95.3
                       customBootstrapScript: |
                         date
 
@@ -877,6 +872,18 @@ Resources:
 
                         echo '=== Setup IDE ==='
                         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
+
+                        echo '=== Setup App ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
+                      codeServerVersion: 4.95.3
+                      instanceIamRoleName:
+                        Ref: VSCodeIdeIdeRole21951A1F
+                      splashUrl: ""
+                      instanceIamRoleArn:
+                        Fn::GetAtt:
+                          - VSCodeIdeIdeRole21951A1F
+                          - Arn
+                      readmeUrl: ""
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -889,12 +896,12 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
-      InstanceId:
-        Ref: VSCodeIde6CDD4972
-      SsmDocument:
-        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
       LogGroupName:
         Ref: VSCodeIdeIdeLogGroup364F2B78
+      SsmDocument:
+        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
+      InstanceId:
+        Ref: VSCodeIde6CDD4972
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   VSCodeIdeIdePasswordExporterFunctionServiceRoleAC3A4C16:

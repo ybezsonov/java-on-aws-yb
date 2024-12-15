@@ -400,18 +400,4 @@ public class VSCodeIde extends Construct {
             return loadFile("/bootstrapGitea.sh");
         }
     }
-
-    private String loadBootstrapScripts(List<String> bootstrapScripts) {
-        if (bootstrapScripts.isEmpty()) {
-            return "echo bootstrapScripts were not provided";
-        } else {
-            StringBuilder sb = new StringBuilder();
-            for (String script : bootstrapScripts) {
-                sb.append("\necho \"Running " + script + " ...\"\n\n");
-                sb.append(loadFile(script));
-                sb.append("\necho \"Finished " + script + ".\"\n");
-            }
-            return sb.toString();
-        }
-    }
 }

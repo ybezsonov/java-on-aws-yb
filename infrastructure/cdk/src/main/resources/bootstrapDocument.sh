@@ -19,6 +19,7 @@ export INSTANCE_IAM_ROLE_NAME="${instanceIamRoleName}"
 export INSTANCE_IAM_ROLE_ARN="${instanceIamRoleArn}"
 
 export AWS_REGION="$AWS_REGION"
+export AWS_DEFAULT_REGION="$AWS_REGION"
 export EC2_PRIVATE_IP="$EC2_PRIVATE_IP"
 
 export IDE_DOMAIN="${domain}"
@@ -50,7 +51,10 @@ echo "Installing AWS CLI..."
 curl -LSsf -o /tmp/aws-cli.zip https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip
 unzip -q -d /tmp /tmp/aws-cli.zip
 /tmp/aws/install --update
-rm -rf /tmp/aws
+rm -rf /tmp/aws*
+
+echo "export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)" | sudo tee -a /etc/profile.d/workshop.sh
+source /etc/profile.d/workshop.sh
 
 echo "Installing Docker..."
 
