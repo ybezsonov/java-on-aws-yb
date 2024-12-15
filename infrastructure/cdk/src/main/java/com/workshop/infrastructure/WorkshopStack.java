@@ -17,7 +17,6 @@ import software.constructs.Construct;
 import java.util.Arrays;
 import java.util.List;
 
-
 public class WorkshopStack extends Stack {
 
     public WorkshopStack(final Construct scope, final String id) {
@@ -57,10 +56,17 @@ public class WorkshopStack extends Stack {
             "ms-kubernetes-tools.vscode-kubernetes-tools",
             "vscjava.vscode-java-pack"
         ));
-        ideProps.setBootstrapScripts(Arrays.asList(
-            "/bootstrapIde.sh",
-            "/bootstrapUnicornStoreSpring.sh"
-        ));
+        String bootstrapScript = """
+            date
+
+            echo '=== Clone Git repository ==='
+            sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
+            sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
+
+            echo '=== Setup IDE ==='
+            sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
+            """;
+        ideProps.setBootstrapScript(bootstrapScript);
 
         var vsCodeIde = new VSCodeIde(this, "VSCodeIde", ideProps);
 

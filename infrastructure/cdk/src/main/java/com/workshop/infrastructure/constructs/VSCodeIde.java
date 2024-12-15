@@ -69,7 +69,7 @@ public class VSCodeIde extends Construct {
 
     public static class VSCodeIdeProps {
         private String instanceName = "IdeInstance";
-        private List<String> bootstrapScripts = new ArrayList<>();
+        private String bootstrapScript = "echo bootstrapScript was not provided";
         private int diskSize = 50;
         private IVpc vpc;
         private String availabilityZone;
@@ -87,8 +87,8 @@ public class VSCodeIde extends Construct {
         private boolean terminalOnStartup = false;
         private IRole role;
 
-        public List<String> getBootstrapScripts() { return bootstrapScripts; }
-        public void setBootstrapScripts(List<String> bootstrapScripts) { this.bootstrapScripts = bootstrapScripts; }
+        public String getBootstrapScript() { return bootstrapScript; }
+        public void setBootstrapScript(String bootstrapScript) { this.bootstrapScript = bootstrapScript; }
         
         public int getDiskSize() { return diskSize; }
         public void setDiskSize(int diskSize) { this.diskSize = diskSize; }
@@ -318,7 +318,7 @@ public class VSCodeIde extends Construct {
                 Map.entry("domain", distribution.getDistributionDomainName()),
                 Map.entry("codeServerVersion", props.getCodeServerVersion()),
                 Map.entry("waitConditionHandleUrl", waitHandle.getRef()),
-                Map.entry("customBootstrapScripts", loadBootstrapScripts(props.getBootstrapScripts())),
+                Map.entry("customBootstrapScript", props.getBootstrapScript()),
                 Map.entry("installGitea", addGiteaToSSMTemplate(props.enableGitea)),
                 Map.entry("splashUrl", props.getSplashUrl()),
                 Map.entry("readmeUrl", props.getReadmeUrl()),

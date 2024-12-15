@@ -1,5 +1,9 @@
 set -e
+
 cd /tmp
+
+# temporarily disable the libuv use of io_uring https://github.com/amazonlinux/amazon-linux-2023/issues/840
+export UV_USE_IO_URING=0
 
 echo "Installing additional packages ..."
 sudo dnf install -y jq
@@ -35,7 +39,7 @@ sudo dnf install -y -q java-21-amazon-corretto-devel
 java -version
 sudo update-alternatives --set java /usr/lib/jvm/java-21-amazon-corretto.x86_64/bin/java
 sudo update-alternatives --set javac /usr/lib/jvm/java-21-amazon-corretto.x86_64/bin/javac
-export JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto.x86_64
+JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto.x86_64
 echo "export JAVA_HOME=${JAVA_HOME}" | sudo tee -a /etc/profile.d/workshop.sh
 java -version
 
@@ -87,7 +91,7 @@ curl -sS -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.31.0/2024-09-12/bin/
 chmod +x ./kubectl
 mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
 echo "export PATH=$PATH:$HOME/bin" | sudo tee -a /etc/profile.d/workshop.sh
-kubectl version --output=yaml
+kubectl version --client --output=yaml
 
 echo "Installing eks-node-viewer ..."
 wget -nv -O eks-node-viewer https://github.com/awslabs/eks-node-viewer/releases/download/v0.7.0/eks-node-viewer_Linux_x86_64

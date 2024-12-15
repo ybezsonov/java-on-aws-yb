@@ -584,20 +584,16 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
-            default: ""
-            description: (Optional) Custom bootstrap script to run.
             type: String
+            description: (Optional) Custom bootstrap script to run.
+            default: ""
         mainSteps:
           - inputs:
               runCommand:
                 - Fn::Sub:
                     - |-
-                      bash << 'HEREDOC' 2>&1 | tee >(while read line; do echo "$(date '+%Y-%m-%d %H:%M:%S') ec=$? $line"; done > /home/ec2-user/bootstrapDocument.log)
-
+                      bash << 'HEREDOC'
                       set -e
-
-                      # temporarily disable the libuv use of io_uring https://github.com/amazonlinux/amazon-linux-2023/issues/840
-                      export UV_USE_IO_URING=0
 
                       echo "Retrieving IDE password..."
 
@@ -648,7 +644,7 @@ Resources:
                       curl -LSsf -o /tmp/aws-cli.zip https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip
                       unzip -q -d /tmp /tmp/aws-cli.zip
                       /tmp/aws/install --update
-                      rm -rf /tmp/aws*
+                      rm -rf /tmp/aws
 
                       echo "Installing Docker..."
 
@@ -822,12 +818,9 @@ Resources:
 
                       ${installGitea}
 
-                      echo "Running custom bootstrap scripts..."
+                      echo "Running custom bootstrap script..."
 
-                      sudo -u ec2-user bash -c "$(cat << CUSTOMSCRIPT
-                      ${customBootstrapScripts}
-                      CUSTOMSCRIPT
-                      )"
+                      ${customBootstrapScript}
                       HEREDOC
 
                       exit_code=$?
@@ -835,180 +828,18 @@ Resources:
                       /opt/aws/bin/cfn-signal -e $exit_code '${waitConditionHandleUrl}'
 
                       exit $exit_code
-                    - instanceIamRoleArn:
-                        Fn::GetAtt:
-                          - VSCodeIdeIdeRole21951A1F
-                          - Arn
-                      readmeUrl: ""
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
-                      extensions: amazonwebservices.aws-toolkit-vscode,ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
-                      domain:
-                        Fn::GetAtt:
-                          - VSCodeIdeIdeDistribution613960F4
-                          - DomainName
-                      customBootstrapScripts: |
-                        
-                        echo "Running /bootstrapIde.sh ..."
+                    - instanceIamRoleName:
+                        Ref: VSCodeIdeIdeRole21951A1F
+                      codeServerVersion: 4.95.3
+                      customBootstrapScript: |
+                        date
 
-                        set -e
-                        cd /tmp
+                        echo '=== Clone Git repository ==='
+                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
+                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
 
-                        echo "Installing additional packages ..."
-                        sudo dnf install -y jq
-
-                        echo "Installing AWS SAM CLI ..."
-                        wget -q https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
-                        unzip -q aws-sam-cli-linux-x86_64.zip -d sam-installation
-                        sudo ./sam-installation/install --update
-                        rm -rf ./sam-installation/
-                        rm ./aws-sam-cli-linux-x86_64.zip
-                        /usr/local/bin/sam --version
-
-                        echo "Installing nodejs and tools ..."
-                        curl -sS -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-                        export NVM_DIR="$HOME/.nvm"
-                        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-                        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-                        nvm install --lts
-                        node -v
-                        nvm install-latest-npm
-                        npm -v
-                        npm install -g aws-cdk
-                        cdk version
-                        npm install -g artillery
-                        artillery -v
-
-                        echo "Installing Java 8, 17 and 21 and sessting 21 as default ..."
-                        sudo dnf install -y -q java-1.8.0-amazon-corretto-devel
-                        java -version
-                        sudo dnf install -y -q java-17-amazon-corretto-devel
-                        java -version
-                        sudo dnf install -y -q java-21-amazon-corretto-devel
-                        java -version
-                        sudo update-alternatives --set java /usr/lib/jvm/java-21-amazon-corretto.x86_64/bin/java
-                        sudo update-alternatives --set javac /usr/lib/jvm/java-21-amazon-corretto.x86_64/bin/javac
-                        export JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto.x86_64
-                        echo "export JAVA_HOME=${JAVA_HOME}" | sudo tee -a /etc/profile.d/workshop.sh
-                        java -version
-
-                        echo "Installing Maven ..."
-                        MVN_VERSION=3.9.9
-                        MVN_FOLDERNAME=apache-maven-${MVN_VERSION}
-                        MVN_FILENAME=apache-maven-${MVN_VERSION}-bin.tar.gz
-                        curl -sS -4 -L https://archive.apache.org/dist/maven/maven-3/${MVN_VERSION}/binaries/${MVN_FILENAME} | tar -xz
-                        sudo mv $MVN_FOLDERNAME /usr/lib/maven
-                        echo "export M2_HOME=/usr/lib/maven" | sudo tee -a /etc/profile.d/workshop.sh
-                        echo "export PATH=${PATH}:${M2_HOME}/bin" | sudo tee -a /etc/profile.d/workshop.sh
-                        sudo ln -s /usr/lib/maven/bin/mvn /usr/local/bin
-                        mvn --version
-
-                        echo "Installing yq ..."
-                        wget -nv https://github.com/mikefarah/yq/releases/download/v4.44.5/yq_linux_amd64.tar.gz -O - |\
-                          tar xz && sudo mv yq_linux_amd64 /usr/bin/yq
-                        yq --version
-
-                        echo "Installing SOCI related packages and change config ..."
-                        SOCI_VERSION=0.8.0
-                        wget -q https://github.com/awslabs/soci-snapshotter/releases/download/v$SOCI_VERSION/soci-snapshotter-$SOCI_VERSION-linux-amd64.tar.gz
-                        sudo tar -C /usr/local/bin -xvf soci-snapshotter-$SOCI_VERSION-linux-amd64.tar.gz soci soci-snapshotter-grpc
-                        cat << EOF | sudo tee /etc/docker/daemon.json
-                        {
-                          "experimental": true,
-                          "features": {
-                            "containerd-snapshotter": true
-                          }
-                        }
-                        EOF
-
-                        sudo systemctl restart docker 
-                        docker info --format '{{json .Driver}}'
-                        docker info --format '{{json .DriverStatus}}'
-
-                        echo "Installing docker buildx ..."
-                        BUILDX_VERSION=$(curl --silent "https://api.github.com/repos/docker/buildx/releases/latest" |jq -r .tag_name)
-                        curl -sS -JLO "https://github.com/docker/buildx/releases/download/$BUILDX_VERSION/buildx-$BUILDX_VERSION.linux-amd64"
-                        mkdir -p ~/.docker/cli-plugins
-                        mv "buildx-$BUILDX_VERSION.linux-amd64" ~/.docker/cli-plugins/docker-buildx
-                        chmod +x ~/.docker/cli-plugins/docker-buildx
-                        docker run --privileged --rm tonistiigi/binfmt --install all
-                        docker buildx create --use --driver=docker-container
-
-                        echo "Installing kubectl ..."
-                        # https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
-                        curl -sS -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.31.0/2024-09-12/bin/linux/amd64/kubectl
-                        chmod +x ./kubectl
-                        mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
-                        echo "export PATH=$PATH:$HOME/bin" | sudo tee -a /etc/profile.d/workshop.sh
-                        kubectl version --output=yaml
-
-                        echo "Installing eks-node-viewer ..."
-                        wget -nv -O eks-node-viewer https://github.com/awslabs/eks-node-viewer/releases/download/v0.7.0/eks-node-viewer_Linux_x86_64
-                        chmod +x eks-node-viewer
-                        sudo mv -v eks-node-viewer /usr/local/bin
-
-                        echo "Installing eksctl ..."
-                        ARCH=amd64
-                        PLATFORM=$(uname -s)_$ARCH
-                        curl -sS -sLO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
-                        # (Optional) Verify checksum
-                        curl -sS -sL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
-                        tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
-                        sudo mv /tmp/eksctl /usr/local/bin
-                        eksctl version
-
-                        echo "Installing Helm ..."
-                        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-                        chmod 700 get_helm.sh
-                        ./get_helm.sh
-                        helm version
-
-                        echo "Installing Session Manager plugin ..."
-                        curl -sS "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm" -o "session-manager-plugin.rpm"
-                        sudo yum -q install -y session-manager-plugin.rpm
-                        session-manager-plugin
-                        rm session-manager-plugin.rpm
-
-                        echo "export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)" | sudo tee -a /etc/profile.d/workshop.sh
-                        echo "export AWS_DEFAULT_REGION=${AWS_REGION}" | sudo tee -a /etc/profile.d/workshop.sh
-                        aws configure set default.region ${AWS_REGION}
-                        aws configure get default.region
-
-                        echo "Finished /bootstrapIde.sh."
-
-                        echo "Running /bootstrapUnicornStoreSpring.sh ..."
-
-                        set -e
-                        echo "Copying unicorn-store-spring application source code to local directory ..."
-                        mkdir -p ~/java-on-aws
-                        git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/
-                        cd ~/java-on-aws
-                        git checkout refactor
-
-                        mkdir -p ~/environment/unicorn-store-spring
-                        rsync -av ~/java-on-aws/apps/unicorn-store-spring/ ~/environment/unicorn-store-spring --exclude target --exclude src/test
-                        echo "target" >> ~/environment/unicorn-store-spring/.gitignore
-
-                        echo "Seting up the local git repository in unicorn-store-spring ..."
-                        cd ~/environment/unicorn-store-spring/
-                        git -C ~/environment/unicorn-store-spring/ init -b main
-                        git config --global user.email "you@workshops.aws"
-                        git config --global user.name "Your Name"
-
-                        echo "target/*" >> .gitignore
-                        echo "*.jar" >> .gitignore
-                        git -C ~/environment/unicorn-store-spring/ add .
-                        git -C ~/environment/unicorn-store-spring/ commit -m "initial commit"
-
-                        echo "Building the unicorn-store-spring application ..."
-                        cd ~/environment/unicorn-store-spring
-                        mvn clean package 1> /dev/null
-
-                        echo '{ "query": { "folder": "/home/ec2-user/environment/unicorn-store-spring" } }' > /home/ec2-user/.local/share/code-server/coder.json
-
-                        echo "Finished /bootstrapUnicornStoreSpring.sh."
-                      installGitea: echo bootstrapGitea was not provided
-                      terminalOnStartup: "true"
+                        echo '=== Setup IDE ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
                       passwordName:
                         Fn::Join:
                           - "-"
@@ -1031,9 +862,20 @@ Resources:
                                             - ":"
                                             - Ref: VSCodeIdeIdePasswordSecret39AD78F3
                       environmentContentsZip: ""
-                      codeServerVersion: 4.95.3
-                      instanceIamRoleName:
-                        Ref: VSCodeIdeIdeRole21951A1F
+                      terminalOnStartup: "true"
+                      installGitea: echo bootstrapGitea was not provided
+                      domain:
+                        Fn::GetAtt:
+                          - VSCodeIdeIdeDistribution613960F4
+                          - DomainName
+                      extensions: amazonwebservices.aws-toolkit-vscode,ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                      waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
+                      readmeUrl: ""
+                      instanceIamRoleArn:
+                        Fn::GetAtt:
+                          - VSCodeIdeIdeRole21951A1F
+                          - Arn
                       splashUrl: ""
             name: IdeBootstrapFunction
             action: aws:runShellScript
@@ -1047,10 +889,10 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
-      InstanceId:
-        Ref: VSCodeIde6CDD4972
       LogGroupName:
         Ref: VSCodeIdeIdeLogGroup364F2B78
+      InstanceId:
+        Ref: VSCodeIde6CDD4972
       SsmDocument:
         Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
     UpdateReplacePolicy: Delete

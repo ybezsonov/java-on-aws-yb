@@ -1,9 +1,5 @@
-bash << 'HEREDOC' 2>&1 | tee >(while read line; do echo "$(date '+%Y-%m-%d %H:%M:%S') ec=$? $line"; done > /home/ec2-user/bootstrapDocument.log)
-
+bash << 'HEREDOC'
 set -e
-
-# temporarily disable the libuv use of io_uring https://github.com/amazonlinux/amazon-linux-2023/issues/840
-export UV_USE_IO_URING=0
 
 echo "Retrieving IDE password..."
 
@@ -54,7 +50,7 @@ echo "Installing AWS CLI..."
 curl -LSsf -o /tmp/aws-cli.zip https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip
 unzip -q -d /tmp /tmp/aws-cli.zip
 /tmp/aws/install --update
-rm -rf /tmp/aws*
+rm -rf /tmp/aws
 
 echo "Installing Docker..."
 
@@ -228,12 +224,9 @@ fi
 
 ${installGitea}
 
-echo "Running custom bootstrap scripts..."
+echo "Running custom bootstrap script..."
 
-sudo -u ec2-user bash -c "$(cat << CUSTOMSCRIPT
-${customBootstrapScripts}
-CUSTOMSCRIPT
-)"
+${customBootstrapScript}
 HEREDOC
 
 exit_code=$?
