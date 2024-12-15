@@ -584,9 +584,9 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
-            type: String
             description: (Optional) Custom bootstrap script to run.
             default: ""
+            type: String
         mainSteps:
           - inputs:
               runCommand:
@@ -828,19 +828,7 @@ Resources:
                       /opt/aws/bin/cfn-signal -e $exit_code '${waitConditionHandleUrl}'
 
                       exit $exit_code
-                    - instanceIamRoleName:
-                        Ref: VSCodeIdeIdeRole21951A1F
-                      codeServerVersion: 4.95.3
-                      customBootstrapScript: |
-                        date
-
-                        echo '=== Clone Git repository ==='
-                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
-                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
-
-                        echo '=== Setup IDE ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
-                      passwordName:
+                    - passwordName:
                         Fn::Join:
                           - "-"
                           - - Fn::Select:
@@ -877,6 +865,18 @@ Resources:
                           - VSCodeIdeIdeRole21951A1F
                           - Arn
                       splashUrl: ""
+                      instanceIamRoleName:
+                        Ref: VSCodeIdeIdeRole21951A1F
+                      codeServerVersion: 4.95.3
+                      customBootstrapScript: |
+                        date
+
+                        echo '=== Clone Git repository ==='
+                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
+                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
+
+                        echo '=== Setup IDE ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -889,12 +889,12 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
-      LogGroupName:
-        Ref: VSCodeIdeIdeLogGroup364F2B78
       InstanceId:
         Ref: VSCodeIde6CDD4972
       SsmDocument:
         Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
+      LogGroupName:
+        Ref: VSCodeIdeIdeLogGroup364F2B78
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   VSCodeIdeIdePasswordExporterFunctionServiceRoleAC3A4C16:
