@@ -10,11 +10,10 @@ git init -b main
 git config --global user.email "you@workshops.aws"
 git config --global user.name "Your Name"
 
-git config --local core.filemode false
 echo "target/*" >> .gitignore
 echo "*.jar" >> .gitignore
-git add .
-git commit -m "initial commit"
+git add . 1>/dev/null
+git commit -q -m "initial commit" 1>/dev/null
 
 echo "Building the application ..."
 mvn clean package 1> /dev/null

@@ -12,7 +12,7 @@ public class WorkshopApp {
     public static void main(final String[] args) {
         App app = new App();
 
-        var workshopStack = new WorkshopStack(app, "workshop-infrastructure");
+        var workshopStack = new WorkshopStack(app, "UnicornStack");
 
         // Add CDK-NAG checks: https://github.com/cdklabs/cdk-nag
         // Add suppression to exclude certain findings that are not needed for Workshop environment
@@ -29,8 +29,11 @@ public class WorkshopApp {
             new NagPackSuppression.Builder().id("AwsSolutions-CFR2").reason("Ephemeral workshop environment does not need WAF").build(),
             new NagPackSuppression.Builder().id("AwsSolutions-CFR3").reason("Ephemeral workshop environment does not need logging").build(),
             new NagPackSuppression.Builder().id("AwsSolutions-CFR4").reason("Workshop instance uses http").build(),
-            new NagPackSuppression.Builder().id("AwsSolutions-CFR5").reason("Workshop instance uses http").build()
-            
+            new NagPackSuppression.Builder().id("AwsSolutions-CFR5").reason("Workshop instance uses http").build(),
+            new NagPackSuppression.Builder().id("AwsSolutions-RDS2").reason("Workshop environment is ephemeral and does not need encryption").build(),
+            new NagPackSuppression.Builder().id("AwsSolutions-RDS6").reason("Workshop environment uses user/password authentication").build(),
+            new NagPackSuppression.Builder().id("AwsSolutions-RDS10").reason("Workshop environment is ephemeral and the database should be deleted by the end of the workshop").build(),
+            new NagPackSuppression.Builder().id("AwsSolutions-EC23").reason("Database security group is restricted to VPC CIDR" ).build()   
         );
         NagSuppressions.addStackSuppressions(workshopStack, suppressionWorkshop);
 

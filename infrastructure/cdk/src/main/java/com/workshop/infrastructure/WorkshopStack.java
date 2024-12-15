@@ -2,6 +2,7 @@ package com.workshop.infrastructure;
 
 import com.workshop.infrastructure.constructs.VSCodeIde;
 import com.workshop.infrastructure.constructs.CustomVpc;
+import com.workshop.infrastructure.constructs.WorkshopInfrastructure;
 
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
@@ -30,7 +31,9 @@ public class WorkshopStack extends Stack {
                 .build()))
             .build());
 
-        var workshopVpc = new CustomVpc(this, "WorkshopVpc");
+        var workshopVpc = new CustomVpc(this, "UnicornVpc");
+
+        var workshopInfrastructure = new WorkshopInfrastructure(this, id, workshopVpc.getVpc());
 
         var ideProps = new VSCodeIde.VSCodeIdeProps();
         ideProps.setVpc(workshopVpc.getVpc());

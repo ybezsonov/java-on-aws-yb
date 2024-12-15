@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "generate-cfn": "cd ./cdk && cdk synth workshop-infrastructure --yaml --path-metadata false --version-reporting false | sed 's/arn:aws:iam::{{.AccountId}}:/!Sub arn:aws:iam::${AWS::AccountId}:/g' > ../cfn/workshop-infrastructure.yaml"
+    "generate-cfn": "cd ./cdk && cdk synth UnicornStack --yaml --path-metadata false --version-reporting false | sed 's/arn:aws:iam::{{.AccountId}}:/!Sub arn:aws:iam::${AWS::AccountId}:/g' > ../cfn/UnicornStack.yaml"
   },
   "author": "",
   "license": "ISC",
