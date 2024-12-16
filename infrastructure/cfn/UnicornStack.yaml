@@ -31,8 +31,10 @@ Metadata:
         id: AwsSolutions-RDS6
       - reason: Workshop environment is ephemeral and the database should be deleted by the end of the workshop
         id: AwsSolutions-RDS10
+      - reason: Workshop non-sensitive EKS cluster uses public access
+        id: AwsSolutions-EKS1
 Resources:
-  UnicornVpcB410D40E:
+  UnicornVpcCustomVPCF56689D1:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
@@ -42,7 +44,7 @@ Resources:
       Tags:
         - Key: Name
           Value: UnicornVpc
-  UnicornVpcPublicSubnet1Subnet15502AD4:
+  UnicornVpcCustomVPCPublicSubnet1Subnet9F5E237C:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
@@ -56,58 +58,66 @@ Resources:
           Value: Public
         - Key: aws-cdk:subnet-type
           Value: Public
+        - Key: kubernetes.io/role/elb
+          Value: "1"
         - Key: Name
-          Value: UnicornStack/UnicornVpc/UnicornVpc/PublicSubnet1
+          Value: UnicornStack/UnicornVpc/CustomVPC/PublicSubnet1
       VpcId:
-        Ref: UnicornVpcB410D40E
-  UnicornVpcPublicSubnet1RouteTable1B0A8222:
+        Ref: UnicornVpcCustomVPCF56689D1
+  UnicornVpcCustomVPCPublicSubnet1RouteTable1F2F07A3:
     Type: AWS::EC2::RouteTable
     Properties:
       Tags:
+        - Key: kubernetes.io/role/elb
+          Value: "1"
         - Key: Name
-          Value: UnicornStack/UnicornVpc/UnicornVpc/PublicSubnet1
+          Value: UnicornStack/UnicornVpc/CustomVPC/PublicSubnet1
       VpcId:
-        Ref: UnicornVpcB410D40E
-  UnicornVpcPublicSubnet1RouteTableAssociationBCC3E08B:
+        Ref: UnicornVpcCustomVPCF56689D1
+  UnicornVpcCustomVPCPublicSubnet1RouteTableAssociationC3BC8D79:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId:
-        Ref: UnicornVpcPublicSubnet1RouteTable1B0A8222
+        Ref: UnicornVpcCustomVPCPublicSubnet1RouteTable1F2F07A3
       SubnetId:
-        Ref: UnicornVpcPublicSubnet1Subnet15502AD4
-  UnicornVpcPublicSubnet1DefaultRoute0D332AA5:
+        Ref: UnicornVpcCustomVPCPublicSubnet1Subnet9F5E237C
+  UnicornVpcCustomVPCPublicSubnet1DefaultRouteB5BC787A:
     Type: AWS::EC2::Route
     Properties:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId:
-        Ref: UnicornVpcIGWE00ECEB8
+        Ref: UnicornVpcCustomVPCIGWFA156D77
       RouteTableId:
-        Ref: UnicornVpcPublicSubnet1RouteTable1B0A8222
+        Ref: UnicornVpcCustomVPCPublicSubnet1RouteTable1F2F07A3
     DependsOn:
-      - UnicornVpcVPCGWC37B571E
-  UnicornVpcPublicSubnet1EIP389FBA62:
+      - UnicornVpcCustomVPCVPCGWB676B592
+  UnicornVpcCustomVPCPublicSubnet1EIPAC9742DF:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
       Tags:
+        - Key: kubernetes.io/role/elb
+          Value: "1"
         - Key: Name
-          Value: UnicornStack/UnicornVpc/UnicornVpc/PublicSubnet1
-  UnicornVpcPublicSubnet1NATGateway4B2478BD:
+          Value: UnicornStack/UnicornVpc/CustomVPC/PublicSubnet1
+  UnicornVpcCustomVPCPublicSubnet1NATGatewayE5A05EEE:
     Type: AWS::EC2::NatGateway
     Properties:
       AllocationId:
         Fn::GetAtt:
-          - UnicornVpcPublicSubnet1EIP389FBA62
+          - UnicornVpcCustomVPCPublicSubnet1EIPAC9742DF
           - AllocationId
       SubnetId:
-        Ref: UnicornVpcPublicSubnet1Subnet15502AD4
+        Ref: UnicornVpcCustomVPCPublicSubnet1Subnet9F5E237C
       Tags:
+        - Key: kubernetes.io/role/elb
+          Value: "1"
         - Key: Name
-          Value: UnicornStack/UnicornVpc/UnicornVpc/PublicSubnet1
+          Value: UnicornStack/UnicornVpc/CustomVPC/PublicSubnet1
     DependsOn:
-      - UnicornVpcPublicSubnet1DefaultRoute0D332AA5
-      - UnicornVpcPublicSubnet1RouteTableAssociationBCC3E08B
-  UnicornVpcPublicSubnet2Subnet6BF05257:
+      - UnicornVpcCustomVPCPublicSubnet1DefaultRouteB5BC787A
+      - UnicornVpcCustomVPCPublicSubnet1RouteTableAssociationC3BC8D79
+  UnicornVpcCustomVPCPublicSubnet2Subnet7F3FB1C4:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
@@ -121,36 +131,40 @@ Resources:
           Value: Public
         - Key: aws-cdk:subnet-type
           Value: Public
+        - Key: kubernetes.io/role/elb
+          Value: "1"
         - Key: Name
-          Value: UnicornStack/UnicornVpc/UnicornVpc/PublicSubnet2
+          Value: UnicornStack/UnicornVpc/CustomVPC/PublicSubnet2
       VpcId:
-        Ref: UnicornVpcB410D40E
-  UnicornVpcPublicSubnet2RouteTableA6C548E0:
+        Ref: UnicornVpcCustomVPCF56689D1
+  UnicornVpcCustomVPCPublicSubnet2RouteTable9E8C7B89:
     Type: AWS::EC2::RouteTable
     Properties:
       Tags:
+        - Key: kubernetes.io/role/elb
+          Value: "1"
         - Key: Name
-          Value: UnicornStack/UnicornVpc/UnicornVpc/PublicSubnet2
+          Value: UnicornStack/UnicornVpc/CustomVPC/PublicSubnet2
       VpcId:
-        Ref: UnicornVpcB410D40E
-  UnicornVpcPublicSubnet2RouteTableAssociation274BC42B:
+        Ref: UnicornVpcCustomVPCF56689D1
+  UnicornVpcCustomVPCPublicSubnet2RouteTableAssociation22471C12:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId:
-        Ref: UnicornVpcPublicSubnet2RouteTableA6C548E0
+        Ref: UnicornVpcCustomVPCPublicSubnet2RouteTable9E8C7B89
       SubnetId:
-        Ref: UnicornVpcPublicSubnet2Subnet6BF05257
-  UnicornVpcPublicSubnet2DefaultRouteF6A8A4EC:
+        Ref: UnicornVpcCustomVPCPublicSubnet2Subnet7F3FB1C4
+  UnicornVpcCustomVPCPublicSubnet2DefaultRoute582532C6:
     Type: AWS::EC2::Route
     Properties:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId:
-        Ref: UnicornVpcIGWE00ECEB8
+        Ref: UnicornVpcCustomVPCIGWFA156D77
       RouteTableId:
-        Ref: UnicornVpcPublicSubnet2RouteTableA6C548E0
+        Ref: UnicornVpcCustomVPCPublicSubnet2RouteTable9E8C7B89
     DependsOn:
-      - UnicornVpcVPCGWC37B571E
-  UnicornVpcPrivateSubnet1Subnet28039B51:
+      - UnicornVpcCustomVPCVPCGWB676B592
+  UnicornVpcCustomVPCPrivateSubnet1Subnet966A5908:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
@@ -164,34 +178,38 @@ Resources:
           Value: Private
         - Key: aws-cdk:subnet-type
           Value: Private
+        - Key: kubernetes.io/role/internal-elb
+          Value: "1"
         - Key: Name
-          Value: UnicornStack/UnicornVpc/UnicornVpc/PrivateSubnet1
+          Value: UnicornStack/UnicornVpc/CustomVPC/PrivateSubnet1
       VpcId:
-        Ref: UnicornVpcB410D40E
-  UnicornVpcPrivateSubnet1RouteTable1F3D3E97:
+        Ref: UnicornVpcCustomVPCF56689D1
+  UnicornVpcCustomVPCPrivateSubnet1RouteTableE9435DAB:
     Type: AWS::EC2::RouteTable
     Properties:
       Tags:
+        - Key: kubernetes.io/role/internal-elb
+          Value: "1"
         - Key: Name
-          Value: UnicornStack/UnicornVpc/UnicornVpc/PrivateSubnet1
+          Value: UnicornStack/UnicornVpc/CustomVPC/PrivateSubnet1
       VpcId:
-        Ref: UnicornVpcB410D40E
-  UnicornVpcPrivateSubnet1RouteTableAssociation8168E0C0:
+        Ref: UnicornVpcCustomVPCF56689D1
+  UnicornVpcCustomVPCPrivateSubnet1RouteTableAssociation019EB5D5:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId:
-        Ref: UnicornVpcPrivateSubnet1RouteTable1F3D3E97
+        Ref: UnicornVpcCustomVPCPrivateSubnet1RouteTableE9435DAB
       SubnetId:
-        Ref: UnicornVpcPrivateSubnet1Subnet28039B51
-  UnicornVpcPrivateSubnet1DefaultRoute1C5D08BE:
+        Ref: UnicornVpcCustomVPCPrivateSubnet1Subnet966A5908
+  UnicornVpcCustomVPCPrivateSubnet1DefaultRoute1BA24312:
     Type: AWS::EC2::Route
     Properties:
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId:
-        Ref: UnicornVpcPublicSubnet1NATGateway4B2478BD
+        Ref: UnicornVpcCustomVPCPublicSubnet1NATGatewayE5A05EEE
       RouteTableId:
-        Ref: UnicornVpcPrivateSubnet1RouteTable1F3D3E97
-  UnicornVpcPrivateSubnet2Subnet07F3100F:
+        Ref: UnicornVpcCustomVPCPrivateSubnet1RouteTableE9435DAB
+  UnicornVpcCustomVPCPrivateSubnet2SubnetD9E42582:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
@@ -205,46 +223,50 @@ Resources:
           Value: Private
         - Key: aws-cdk:subnet-type
           Value: Private
+        - Key: kubernetes.io/role/internal-elb
+          Value: "1"
         - Key: Name
-          Value: UnicornStack/UnicornVpc/UnicornVpc/PrivateSubnet2
+          Value: UnicornStack/UnicornVpc/CustomVPC/PrivateSubnet2
       VpcId:
-        Ref: UnicornVpcB410D40E
-  UnicornVpcPrivateSubnet2RouteTableA273E65A:
+        Ref: UnicornVpcCustomVPCF56689D1
+  UnicornVpcCustomVPCPrivateSubnet2RouteTable2AE57AEC:
     Type: AWS::EC2::RouteTable
     Properties:
       Tags:
+        - Key: kubernetes.io/role/internal-elb
+          Value: "1"
         - Key: Name
-          Value: UnicornStack/UnicornVpc/UnicornVpc/PrivateSubnet2
+          Value: UnicornStack/UnicornVpc/CustomVPC/PrivateSubnet2
       VpcId:
-        Ref: UnicornVpcB410D40E
-  UnicornVpcPrivateSubnet2RouteTableAssociationE0DC3803:
+        Ref: UnicornVpcCustomVPCF56689D1
+  UnicornVpcCustomVPCPrivateSubnet2RouteTableAssociation7976E536:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId:
-        Ref: UnicornVpcPrivateSubnet2RouteTableA273E65A
+        Ref: UnicornVpcCustomVPCPrivateSubnet2RouteTable2AE57AEC
       SubnetId:
-        Ref: UnicornVpcPrivateSubnet2Subnet07F3100F
-  UnicornVpcPrivateSubnet2DefaultRoute7AE89C7E:
+        Ref: UnicornVpcCustomVPCPrivateSubnet2SubnetD9E42582
+  UnicornVpcCustomVPCPrivateSubnet2DefaultRoute54D1AA8E:
     Type: AWS::EC2::Route
     Properties:
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId:
-        Ref: UnicornVpcPublicSubnet1NATGateway4B2478BD
+        Ref: UnicornVpcCustomVPCPublicSubnet1NATGatewayE5A05EEE
       RouteTableId:
-        Ref: UnicornVpcPrivateSubnet2RouteTableA273E65A
-  UnicornVpcIGWE00ECEB8:
+        Ref: UnicornVpcCustomVPCPrivateSubnet2RouteTable2AE57AEC
+  UnicornVpcCustomVPCIGWFA156D77:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
           Value: UnicornVpc
-  UnicornVpcVPCGWC37B571E:
+  UnicornVpcCustomVPCVPCGWB676B592:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       InternetGatewayId:
-        Ref: UnicornVpcIGWE00ECEB8
+        Ref: UnicornVpcCustomVPCIGWFA156D77
       VpcId:
-        Ref: UnicornVpcB410D40E
+        Ref: UnicornVpcCustomVPCF56689D1
   UnicornStackpostgres267CB88C:
     Type: AWS::SecretsManager::Secret
     Properties:
@@ -287,14 +309,14 @@ Resources:
           IpProtocol: tcp
           ToPort: 5432
       VpcId:
-        Ref: UnicornVpcB410D40E
+        Ref: UnicornVpcCustomVPCF56689D1
   UnicornStackUnicornDatabaseSubnetsFC71DF6A:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
       DBSubnetGroupDescription: Subnets for UnicornDatabase database
       SubnetIds:
-        - Ref: UnicornVpcPrivateSubnet1Subnet28039B51
-        - Ref: UnicornVpcPrivateSubnet2Subnet07F3100F
+        - Ref: UnicornVpcCustomVPCPrivateSubnet1Subnet966A5908
+        - Ref: UnicornVpcCustomVPCPrivateSubnet2SubnetD9E42582
   UnicornStackUnicornDatabase6FE2DF4E:
     Type: AWS::RDS::DBCluster
     Properties:
@@ -338,10 +360,10 @@ Resources:
       PromotionTier: 0
       PubliclyAccessible: false
     DependsOn:
-      - UnicornVpcPrivateSubnet1DefaultRoute1C5D08BE
-      - UnicornVpcPrivateSubnet1RouteTableAssociation8168E0C0
-      - UnicornVpcPrivateSubnet2DefaultRoute7AE89C7E
-      - UnicornVpcPrivateSubnet2RouteTableAssociationE0DC3803
+      - UnicornVpcCustomVPCPrivateSubnet1DefaultRoute1BA24312
+      - UnicornVpcCustomVPCPrivateSubnet1RouteTableAssociation019EB5D5
+      - UnicornVpcCustomVPCPrivateSubnet2DefaultRoute54D1AA8E
+      - UnicornVpcCustomVPCPrivateSubnet2RouteTableAssociation7976E536
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   UnicornStackSsmParameterDatabaseJDBCConnectionString693CD16A:
@@ -624,7 +646,114 @@ Resources:
       PolicyName: UnicornStackunicornstoreekspodroleDefaultPolicy2240237A
       Roles:
         - Ref: UnicornStackunicornstoreekspodrole0982F9CB
-  WorkshopUserRole2CD0A22F:
+  unicornstoreEKSClusterRole6494682A:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+              - sts:TagSession
+            Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonEKSClusterPolicy
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonEKSComputePolicy
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonEKSBlockStoragePolicy
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonEKSLoadBalancingPolicy
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonEKSNetworkingPolicy
+  unicornstoreEKSClusterNodeRole8829D9B6:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonEC2ContainerRegistryPullOnly
+  unicornstoreEKSCluster593038F7:
+    Type: AWS::EKS::Cluster
+    Properties:
+      AccessConfig:
+        AuthenticationMode: API
+        BootstrapClusterCreatorAdminPermissions: false
+      ComputeConfig:
+        Enabled: true
+        NodePools:
+          - system
+          - general-purpose
+        NodeRoleArn:
+          Fn::GetAtt:
+            - unicornstoreEKSClusterNodeRole8829D9B6
+            - Arn
+      KubernetesNetworkConfig:
+        ElasticLoadBalancing:
+          Enabled: true
+        IpFamily: ipv4
+      Logging:
+        ClusterLogging:
+          EnabledTypes:
+            - Type: api
+            - Type: audit
+            - Type: authenticator
+            - Type: controllerManager
+            - Type: scheduler
+      Name: unicorn-store
+      ResourcesVpcConfig:
+        EndpointPrivateAccess: true
+        EndpointPublicAccess: true
+        SubnetIds:
+          - Ref: UnicornVpcCustomVPCPrivateSubnet1Subnet966A5908
+          - Ref: UnicornVpcCustomVPCPrivateSubnet2SubnetD9E42582
+      RoleArn:
+        Fn::GetAtt:
+          - unicornstoreEKSClusterRole6494682A
+          - Arn
+      StorageConfig:
+        BlockStorage:
+          Enabled: true
+      UpgradePolicy:
+        SupportType: STANDARD
+      Version: "1.31"
+  IdeRoleE8AB7A1E:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -655,8 +784,7 @@ Resources:
             - - "arn:"
               - Ref: AWS::Partition
               - :iam::aws:policy/AmazonSSMManagedInstanceCore
-      RoleName: java-on-aws-workshop-user
-  WorkshopUserRoleDefaultPolicy945C76B1:
+  IdeRoleDefaultPolicyA3AD7F23:
     Type: AWS::IAM::Policy
     Properties:
       PolicyDocument:
@@ -700,9 +828,35 @@ Resources:
                 - VSCodeIdeIdeLogGroup364F2B78
                 - Arn
         Version: "2012-10-17"
-      PolicyName: WorkshopUserRoleDefaultPolicy945C76B1
+      PolicyName: IdeRoleDefaultPolicyA3AD7F23
       Roles:
-        - Ref: WorkshopUserRole2CD0A22F
+        - Ref: IdeRoleE8AB7A1E
+  IdeRoleEKSAccessEntry:
+    Type: AWS::EKS::AccessEntry
+    Properties:
+      AccessPolicies:
+        - AccessScope:
+            Type: cluster
+          PolicyArn: arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
+      ClusterName: unicorn-store
+      PrincipalArn:
+        Fn::GetAtt:
+          - IdeRoleE8AB7A1E
+          - Arn
+  ParticipantRoleEKSAccessEntry:
+    Type: AWS::EKS::AccessEntry
+    Properties:
+      AccessPolicies:
+        - AccessScope:
+            Type: cluster
+          PolicyArn: arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
+      ClusterName: unicorn-store
+      PrincipalArn:
+        Fn::Join:
+          - ""
+          - - "arn:aws:iam::"
+            - Ref: AWS::AccountId
+            - :assumed-role/WSParticipantRole/Participant
   AppSecurityGroupC396D536:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -718,7 +872,7 @@ Resources:
           IpProtocol: tcp
           ToPort: 8080
       VpcId:
-        Ref: UnicornVpcB410D40E
+        Ref: UnicornVpcCustomVPCF56689D1
   VSCodeIdeIdePrefixListFunctionServiceRoleE64D8247:
     Type: AWS::IAM::Role
     Properties:
@@ -815,7 +969,7 @@ Resources:
           Description: Allow all outbound traffic by default
           IpProtocol: "-1"
       VpcId:
-        Ref: UnicornVpcB410D40E
+        Ref: UnicornVpcCustomVPCF56689D1
   VSCodeIdeIdeSecurityGroupfromIndirectPeer80614C2C39:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -835,29 +989,29 @@ Resources:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - Ref: WorkshopUserRole2CD0A22F
+        - Ref: IdeRoleE8AB7A1E
     DependsOn:
-      - UnicornVpcIGWE00ECEB8
-      - UnicornVpcPrivateSubnet1DefaultRoute1C5D08BE
-      - UnicornVpcPrivateSubnet1RouteTable1F3D3E97
-      - UnicornVpcPrivateSubnet1RouteTableAssociation8168E0C0
-      - UnicornVpcPrivateSubnet1Subnet28039B51
-      - UnicornVpcPrivateSubnet2DefaultRoute7AE89C7E
-      - UnicornVpcPrivateSubnet2RouteTableA273E65A
-      - UnicornVpcPrivateSubnet2RouteTableAssociationE0DC3803
-      - UnicornVpcPrivateSubnet2Subnet07F3100F
-      - UnicornVpcPublicSubnet1DefaultRoute0D332AA5
-      - UnicornVpcPublicSubnet1EIP389FBA62
-      - UnicornVpcPublicSubnet1NATGateway4B2478BD
-      - UnicornVpcPublicSubnet1RouteTable1B0A8222
-      - UnicornVpcPublicSubnet1RouteTableAssociationBCC3E08B
-      - UnicornVpcPublicSubnet1Subnet15502AD4
-      - UnicornVpcPublicSubnet2DefaultRouteF6A8A4EC
-      - UnicornVpcPublicSubnet2RouteTableA6C548E0
-      - UnicornVpcPublicSubnet2RouteTableAssociation274BC42B
-      - UnicornVpcPublicSubnet2Subnet6BF05257
-      - UnicornVpcB410D40E
-      - UnicornVpcVPCGWC37B571E
+      - UnicornVpcCustomVPCIGWFA156D77
+      - UnicornVpcCustomVPCPrivateSubnet1DefaultRoute1BA24312
+      - UnicornVpcCustomVPCPrivateSubnet1RouteTableE9435DAB
+      - UnicornVpcCustomVPCPrivateSubnet1RouteTableAssociation019EB5D5
+      - UnicornVpcCustomVPCPrivateSubnet1Subnet966A5908
+      - UnicornVpcCustomVPCPrivateSubnet2DefaultRoute54D1AA8E
+      - UnicornVpcCustomVPCPrivateSubnet2RouteTable2AE57AEC
+      - UnicornVpcCustomVPCPrivateSubnet2RouteTableAssociation7976E536
+      - UnicornVpcCustomVPCPrivateSubnet2SubnetD9E42582
+      - UnicornVpcCustomVPCPublicSubnet1DefaultRouteB5BC787A
+      - UnicornVpcCustomVPCPublicSubnet1EIPAC9742DF
+      - UnicornVpcCustomVPCPublicSubnet1NATGatewayE5A05EEE
+      - UnicornVpcCustomVPCPublicSubnet1RouteTable1F2F07A3
+      - UnicornVpcCustomVPCPublicSubnet1RouteTableAssociationC3BC8D79
+      - UnicornVpcCustomVPCPublicSubnet1Subnet9F5E237C
+      - UnicornVpcCustomVPCPublicSubnet2DefaultRoute582532C6
+      - UnicornVpcCustomVPCPublicSubnet2RouteTable9E8C7B89
+      - UnicornVpcCustomVPCPublicSubnet2RouteTableAssociation22471C12
+      - UnicornVpcCustomVPCPublicSubnet2Subnet7F3FB1C4
+      - UnicornVpcCustomVPCF56689D1
+      - UnicornVpcCustomVPCVPCGWB676B592
   VSCodeIde6CDD4972:
     Type: AWS::EC2::Instance
     Properties:
@@ -885,36 +1039,36 @@ Resources:
             - AppSecurityGroupC396D536
             - GroupId
       SubnetId:
-        Ref: UnicornVpcPublicSubnet1Subnet15502AD4
+        Ref: UnicornVpcCustomVPCPublicSubnet1Subnet9F5E237C
       Tags:
         - Key: Name
           Value: IdeInstance
       UserData:
         Fn::Base64: "#!/bin/bash"
     DependsOn:
-      - UnicornVpcIGWE00ECEB8
-      - UnicornVpcPrivateSubnet1DefaultRoute1C5D08BE
-      - UnicornVpcPrivateSubnet1RouteTable1F3D3E97
-      - UnicornVpcPrivateSubnet1RouteTableAssociation8168E0C0
-      - UnicornVpcPrivateSubnet1Subnet28039B51
-      - UnicornVpcPrivateSubnet2DefaultRoute7AE89C7E
-      - UnicornVpcPrivateSubnet2RouteTableA273E65A
-      - UnicornVpcPrivateSubnet2RouteTableAssociationE0DC3803
-      - UnicornVpcPrivateSubnet2Subnet07F3100F
-      - UnicornVpcPublicSubnet1DefaultRoute0D332AA5
-      - UnicornVpcPublicSubnet1EIP389FBA62
-      - UnicornVpcPublicSubnet1NATGateway4B2478BD
-      - UnicornVpcPublicSubnet1RouteTable1B0A8222
-      - UnicornVpcPublicSubnet1RouteTableAssociationBCC3E08B
-      - UnicornVpcPublicSubnet1Subnet15502AD4
-      - UnicornVpcPublicSubnet2DefaultRouteF6A8A4EC
-      - UnicornVpcPublicSubnet2RouteTableA6C548E0
-      - UnicornVpcPublicSubnet2RouteTableAssociation274BC42B
-      - UnicornVpcPublicSubnet2Subnet6BF05257
-      - UnicornVpcB410D40E
-      - UnicornVpcVPCGWC37B571E
-      - WorkshopUserRoleDefaultPolicy945C76B1
-      - WorkshopUserRole2CD0A22F
+      - IdeRoleDefaultPolicyA3AD7F23
+      - IdeRoleE8AB7A1E
+      - UnicornVpcCustomVPCIGWFA156D77
+      - UnicornVpcCustomVPCPrivateSubnet1DefaultRoute1BA24312
+      - UnicornVpcCustomVPCPrivateSubnet1RouteTableE9435DAB
+      - UnicornVpcCustomVPCPrivateSubnet1RouteTableAssociation019EB5D5
+      - UnicornVpcCustomVPCPrivateSubnet1Subnet966A5908
+      - UnicornVpcCustomVPCPrivateSubnet2DefaultRoute54D1AA8E
+      - UnicornVpcCustomVPCPrivateSubnet2RouteTable2AE57AEC
+      - UnicornVpcCustomVPCPrivateSubnet2RouteTableAssociation7976E536
+      - UnicornVpcCustomVPCPrivateSubnet2SubnetD9E42582
+      - UnicornVpcCustomVPCPublicSubnet1DefaultRouteB5BC787A
+      - UnicornVpcCustomVPCPublicSubnet1EIPAC9742DF
+      - UnicornVpcCustomVPCPublicSubnet1NATGatewayE5A05EEE
+      - UnicornVpcCustomVPCPublicSubnet1RouteTable1F2F07A3
+      - UnicornVpcCustomVPCPublicSubnet1RouteTableAssociationC3BC8D79
+      - UnicornVpcCustomVPCPublicSubnet1Subnet9F5E237C
+      - UnicornVpcCustomVPCPublicSubnet2DefaultRoute582532C6
+      - UnicornVpcCustomVPCPublicSubnet2RouteTable9E8C7B89
+      - UnicornVpcCustomVPCPublicSubnet2RouteTableAssociation22471C12
+      - UnicornVpcCustomVPCPublicSubnet2Subnet7F3FB1C4
+      - UnicornVpcCustomVPCF56689D1
+      - UnicornVpcCustomVPCVPCGWB676B592
   VSCodeIdeIdeBootstrapFunctionServiceRole45BD56C6:
     Type: AWS::IAM::Role
     Properties:
@@ -940,7 +1094,7 @@ Resources:
             Effect: Allow
             Resource:
               Fn::GetAtt:
-                - WorkshopUserRole2CD0A22F
+                - IdeRoleE8AB7A1E
                 - Arn
           - Action:
               - ec2:DescribeInstances
@@ -1109,8 +1263,8 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
-            type: String
             default: ""
+            type: String
             description: (Optional) Custom bootstrap script to run.
         mainSteps:
           - inputs:
@@ -1357,7 +1511,31 @@ Resources:
                       /opt/aws/bin/cfn-signal -e $exit_code '${waitConditionHandleUrl}'
 
                       exit $exit_code
-                    - passwordName:
+                    - extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                      waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
+                      readmeUrl: ""
+                      instanceIamRoleArn:
+                        Fn::GetAtt:
+                          - IdeRoleE8AB7A1E
+                          - Arn
+                      splashUrl: ""
+                      instanceIamRoleName:
+                        Ref: IdeRoleE8AB7A1E
+                      codeServerVersion: 4.95.3
+                      customBootstrapScript: |
+                        date
+
+                        echo '=== Clone Git repository ==='
+                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
+                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
+
+                        echo '=== Setup IDE ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
+
+                        echo '=== Setup App ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
+                      passwordName:
                         Fn::Join:
                           - "-"
                           - - Fn::Select:
@@ -1378,37 +1556,13 @@ Resources:
                                         - Fn::Split:
                                             - ":"
                                             - Ref: VSCodeIdeIdePasswordSecret39AD78F3
-                      customBootstrapScript: |
-                        date
-
-                        echo '=== Clone Git repository ==='
-                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
-                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
-
-                        echo '=== Setup IDE ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
-
-                        echo '=== Setup App ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
-                      codeServerVersion: 4.95.3
-                      instanceIamRoleName:
-                        Ref: WorkshopUserRole2CD0A22F
-                      splashUrl: ""
-                      instanceIamRoleArn:
-                        Fn::GetAtt:
-                          - WorkshopUserRole2CD0A22F
-                          - Arn
-                      readmeUrl: ""
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
-                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                      environmentContentsZip: ""
+                      terminalOnStartup: "true"
+                      installGitea: echo bootstrapGitea was not provided
                       domain:
                         Fn::GetAtt:
                           - VSCodeIdeIdeDistribution613960F4
                           - DomainName
-                      installGitea: echo bootstrapGitea was not provided
-                      terminalOnStartup: "true"
-                      environmentContentsZip: ""
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -1421,12 +1575,12 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
-      LogGroupName:
-        Ref: VSCodeIdeIdeLogGroup364F2B78
-      SsmDocument:
-        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
       InstanceId:
         Ref: VSCodeIde6CDD4972
+      SsmDocument:
+        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
+      LogGroupName:
+        Ref: VSCodeIdeIdeLogGroup364F2B78
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   VSCodeIdeIdePasswordExporterFunctionServiceRoleAC3A4C16:

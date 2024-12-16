@@ -32,7 +32,8 @@ public class WorkshopApp {
             new NagPackSuppression.Builder().id("AwsSolutions-CFR5").reason("Workshop instance uses http").build(),
             new NagPackSuppression.Builder().id("AwsSolutions-RDS2").reason("Workshop environment is ephemeral and does not need encryption").build(),
             new NagPackSuppression.Builder().id("AwsSolutions-RDS6").reason("Workshop environment uses user/password authentication").build(),
-            new NagPackSuppression.Builder().id("AwsSolutions-RDS10").reason("Workshop environment is ephemeral and the database should be deleted by the end of the workshop").build()
+            new NagPackSuppression.Builder().id("AwsSolutions-RDS10").reason("Workshop environment is ephemeral and the database should be deleted by the end of the workshop").build(),
+            new NagPackSuppression.Builder().id("AwsSolutions-EKS1").reason("Workshop non-sensitive EKS cluster uses public access" ).build()
         );
         NagSuppressions.addStackSuppressions(workshopStack, suppressionWorkshop);
 

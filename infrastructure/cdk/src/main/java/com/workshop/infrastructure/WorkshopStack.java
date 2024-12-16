@@ -2,6 +2,7 @@ package com.workshop.infrastructure;
 
 import com.workshop.infrastructure.constructs.VSCodeIde;
 import com.workshop.infrastructure.constructs.CustomVpc;
+import com.workshop.infrastructure.constructs.EKSCluster;
 import com.workshop.infrastructure.constructs.WorkshopInfrastructure;
 
 import software.amazon.awscdk.Stack;
@@ -15,6 +16,9 @@ import software.amazon.awscdk.services.ec2.SecurityGroup;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
 import software.amazon.awscdk.services.iam.ManagedPolicy;
+import software.amazon.awscdk.services.eks.CfnAccessEntry;
+import software.amazon.awscdk.services.eks.CfnAccessEntry.AccessScopeProperty;
+import software.amazon.awscdk.services.eks.CfnAccessEntry.AccessPolicyProperty;
 
 import software.constructs.Construct;
 
@@ -35,10 +39,14 @@ public class WorkshopStack extends Stack {
             .build());       
 
         var workshopVpc = new CustomVpc(this, "UnicornVpc");
+        var vpc = workshopVpc.getVpc();
 
-        var workshopInfrastructure = new WorkshopInfrastructure(this, id, workshopVpc.getVpc());
+        var workshopInfrastructure = new WorkshopInfrastructure(this, id, vpc);
+        var eksClusterName = "unicorn-store";
+        var workshopEKSCluster = new EKSCluster(this, eksClusterName, vpc);
+        var accountId = this.getAccount();
 
-        Role userRole = Role.Builder.create(this, "WorkshopUserRole")
+        var ideRole = Role.Builder.create(this, "IdeRole")
             .assumedBy(new ServicePrincipal("ec2.amazonaws.com"))
             .managedPolicies(Arrays.asList(
                 ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"),
@@ -46,19 +54,42 @@ public class WorkshopStack extends Stack {
                 ManagedPolicy.fromAwsManagedPolicyName("ReadOnlyAccess"),
                 ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")
             ))
-            .roleName("java-on-aws-workshop-user")
             .build();
-        workshopInfrastructure.getEventBridge().grantPutEventsTo(userRole);
-        workshopInfrastructure.getDatabaseSecret().grantRead(userRole);
-        workshopInfrastructure.getParamJdbc().grantRead(userRole);
+
+        // Add access to the EKS cluster            
+        CfnAccessEntry.Builder.create(this, "IdeRoleEKSAccessEntry")
+            .clusterName(eksClusterName)
+            .principalArn(ideRole.getRoleArn())
+            .accessPolicies(List.of(AccessPolicyProperty.builder()
+                    .accessScope(AccessScopeProperty.builder()
+                        .type("cluster")
+                        .build())
+                    .policyArn("arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy")
+                    .build()))
+            .build();
+
+        CfnAccessEntry.Builder.create(this, "ParticipantRoleEKSAccessEntry")
+            .clusterName(eksClusterName)
+            .principalArn("arn:aws:iam::" + accountId + ":assumed-role/WSParticipantRole/Participant")
+            .accessPolicies(List.of(AccessPolicyProperty.builder()
+                        .accessScope(AccessScopeProperty.builder()
+                        .type("cluster")
+                        .build())
+                    .policyArn("arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy")
+                    .build()))
+            .build();            
+
+        workshopInfrastructure.getEventBridge().grantPutEventsTo(ideRole);
+        workshopInfrastructure.getDatabaseSecret().grantRead(ideRole);
+        workshopInfrastructure.getParamJdbc().grantRead(ideRole);
 
         var ideProps = new VSCodeIde.VSCodeIdeProps();
-        ideProps.setRole(userRole);
-        ideProps.setVpc(workshopVpc.getVpc());
-        ideProps.setAvailabilityZone(workshopVpc.getVpc().getAvailabilityZones().get(0));
+        ideProps.setRole(ideRole);
+        ideProps.setVpc(vpc);
+        ideProps.setAvailabilityZone(vpc.getAvailabilityZones().get(0));
         // Create a security group to access an application at the port 8080
         SecurityGroup ideSecurityGroup = SecurityGroup.Builder.create(this, "AppSecurityGroup")
-            .vpc(workshopVpc.getVpc())
+            .vpc(vpc)
             .allowAllOutbound(true)
             .description("App security group")
             .build();
