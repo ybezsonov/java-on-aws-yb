@@ -70,7 +70,7 @@ public class WorkshopStack extends Stack {
 
         CfnAccessEntry.Builder.create(this, "ParticipantRoleEKSAccessEntry")
             .clusterName(eksClusterName)
-            .principalArn("arn:aws:iam::" + accountId + ":assumed-role/WSParticipantRole/Participant")
+            .principalArn("arn:aws:iam::" + accountId + ":role/WSParticipantRole")
             .accessPolicies(List.of(AccessPolicyProperty.builder()
                         .accessScope(AccessScopeProperty.builder()
                         .type("cluster")
@@ -133,5 +133,10 @@ public class WorkshopStack extends Stack {
             .value(vsCodeIde.getIdePassword())
             .description("Workshop IDE Password")
             .build();
+        CfnOutput.Builder.create(this, "KubeconfigCommand")
+            .value(String.format("aws eks --region %s update-kubeconfig --name %s",
+                Stack.of(this).getRegion(), eksClusterName))
+            .description("Command to update kubeconfig")
+            .build();  
     }
 }

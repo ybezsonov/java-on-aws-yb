@@ -856,7 +856,7 @@ Resources:
           - ""
           - - "arn:aws:iam::"
             - Ref: AWS::AccountId
-            - :assumed-role/WSParticipantRole/Participant
+            - :role/WSParticipantRole
   AppSecurityGroupC396D536:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -1263,9 +1263,9 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
-            default: ""
-            type: String
             description: (Optional) Custom bootstrap script to run.
+            type: String
+            default: ""
         mainSteps:
           - inputs:
               runCommand:
@@ -1512,29 +1512,13 @@ Resources:
 
                       exit $exit_code
                     - extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
-                      readmeUrl: ""
-                      instanceIamRoleArn:
+                      domain:
                         Fn::GetAtt:
-                          - IdeRoleE8AB7A1E
-                          - Arn
-                      splashUrl: ""
-                      instanceIamRoleName:
-                        Ref: IdeRoleE8AB7A1E
-                      codeServerVersion: 4.95.3
-                      customBootstrapScript: |
-                        date
-
-                        echo '=== Clone Git repository ==='
-                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
-                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
-
-                        echo '=== Setup IDE ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
-
-                        echo '=== Setup App ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
+                          - VSCodeIdeIdeDistribution613960F4
+                          - DomainName
+                      installGitea: echo bootstrapGitea was not provided
+                      terminalOnStartup: "true"
+                      environmentContentsZip: ""
                       passwordName:
                         Fn::Join:
                           - "-"
@@ -1556,13 +1540,29 @@ Resources:
                                         - Fn::Split:
                                             - ":"
                                             - Ref: VSCodeIdeIdePasswordSecret39AD78F3
-                      environmentContentsZip: ""
-                      terminalOnStartup: "true"
-                      installGitea: echo bootstrapGitea was not provided
-                      domain:
+                      customBootstrapScript: |
+                        date
+
+                        echo '=== Clone Git repository ==='
+                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
+                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
+
+                        echo '=== Setup IDE ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
+
+                        echo '=== Setup App ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
+                      codeServerVersion: 4.95.3
+                      instanceIamRoleName:
+                        Ref: IdeRoleE8AB7A1E
+                      splashUrl: ""
+                      instanceIamRoleArn:
                         Fn::GetAtt:
-                          - VSCodeIdeIdeDistribution613960F4
-                          - DomainName
+                          - IdeRoleE8AB7A1E
+                          - Arn
+                      readmeUrl: ""
+                      waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -1575,12 +1575,12 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
-      InstanceId:
-        Ref: VSCodeIde6CDD4972
-      SsmDocument:
-        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
       LogGroupName:
         Ref: VSCodeIdeIdeLogGroup364F2B78
+      SsmDocument:
+        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
+      InstanceId:
+        Ref: VSCodeIde6CDD4972
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   VSCodeIdeIdePasswordExporterFunctionServiceRoleAC3A4C16:
@@ -1711,4 +1711,12 @@ Outputs:
       Fn::GetAtt:
         - VSCodeIdeIdePasswordExporter93551A8E
         - password
+  KubeconfigCommand:
+    Description: Command to update kubeconfig
+    Value:
+      Fn::Join:
+        - ""
+        - - "aws eks --region "
+          - Ref: AWS::Region
+          - " update-kubeconfig --name unicorn-store"
 
