@@ -69,6 +69,7 @@ public class WorkshopInfrastructure extends Construct {
             .repositoryName("unicorn-store-spring")
             .imageScanOnPush(false)
             .removalPolicy(RemovalPolicy.DESTROY)
+            .emptyOnDelete(true)  // This will force delete all images when repository is deleted
             .build();
 
         // Roles - AppRunner
@@ -171,8 +172,9 @@ public class WorkshopInfrastructure extends Construct {
         var databaseSecurityGroup = createDatabaseSecurityGroup(vpc);
         
         var cluster = DatabaseCluster.Builder.create(this, "UnicornDatabase")
-            .engine(DatabaseClusterEngine.auroraPostgres(AuroraPostgresClusterEngineProps.builder().version(AuroraPostgresEngineVersion.VER_16_6).build()))
-            .serverlessV2MinCapacity(0)
+            .engine(DatabaseClusterEngine.auroraPostgres(
+                AuroraPostgresClusterEngineProps.builder().version(AuroraPostgresEngineVersion.VER_16_4).build()))
+            .serverlessV2MinCapacity(0.5)
             .serverlessV2MaxCapacity(4)
             .writer(ClusterInstance.serverlessV2("writer"))        
             .enableDataApi(true)

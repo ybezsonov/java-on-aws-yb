@@ -209,7 +209,7 @@ dnf install -y -q caddy
 systemctl enable --now caddy
 
 tee /etc/caddy/Caddyfile <<EOF
-http://${domain} {
+:80 {
   handle /* {
     reverse_proxy 127.0.0.1:8889
   }

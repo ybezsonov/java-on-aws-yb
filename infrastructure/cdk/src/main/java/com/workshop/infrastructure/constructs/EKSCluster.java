@@ -30,8 +30,6 @@ import java.util.List;
 
 public class EKSCluster extends Construct {
 
-    private CfnCluster cluster;
-
     public EKSCluster(final Construct scope, final String id, final Vpc vpc) {
         super(scope, id);
 
@@ -67,7 +65,7 @@ public class EKSCluster extends Construct {
                 .build()
         );
 
-        // Create Role for a cluster node
+        // Create Role for cluster nodes
         var nodeRole = Role.Builder.create(this, "EKSClusterNodeRole")
             .assumedBy(new ServicePrincipal("ec2.amazonaws.com"))
             .managedPolicies(Arrays.asList(
@@ -136,9 +134,5 @@ public class EKSCluster extends Construct {
                 .supportType("STANDARD")
                 .build())
             .build();
-    }
-
-    public CfnCluster getCluster() {
-        return cluster;
     }
 }

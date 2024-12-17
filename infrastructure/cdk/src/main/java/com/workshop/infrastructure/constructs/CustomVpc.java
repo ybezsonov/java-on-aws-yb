@@ -19,7 +19,7 @@ public class CustomVpc extends Construct {
     vpc = Vpc.Builder.create(this, "CustomVPC")
         .vpcName(id)
         .ipAddresses(IpAddresses.cidr("10.0.0.0/16"))
-        .maxAzs(2)  // Use 2 Availability Zone
+        .maxAzs(2)  // Use 2 Availability Zones
         .subnetConfiguration(Arrays.asList(
             SubnetConfiguration.builder()
                 .name("Public")
