@@ -14,7 +14,7 @@ public class ContainersConfig {
     @RestartScope
     PostgreSQLContainer<?> postgreSQLContainer(){
         return new PostgreSQLContainer<>("postgres:16.4")
-        .withDatabaseName("unicorns")
+        .withDatabaseName("unicorn-store")
         .withUsername("postgres")
         .withPassword("postgres");
     }

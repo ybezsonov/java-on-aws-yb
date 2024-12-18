@@ -100,7 +100,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Bean
     public Tracer getTracer(OpenTelemetry otel) {
-        return otel.getTracer("unicornstore");
+        return otel.getTracer("unicorn-store");
     }
 
     private Tracer tracer;

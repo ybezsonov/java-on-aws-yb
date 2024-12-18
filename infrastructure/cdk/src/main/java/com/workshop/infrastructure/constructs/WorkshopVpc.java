@@ -7,14 +7,14 @@ import software.amazon.awscdk.services.ec2.SubnetType;
 import software.amazon.awscdk.services.ec2.IpAddresses;
 import java.util.Arrays;
 
-public class CustomVpc extends Construct {
+public class WorkshopVpc extends Construct {
 
     private final Vpc vpc;
 
-    public CustomVpc(final Construct scope, final String id) {
+    public WorkshopVpc(final Construct scope, final String id) {
         super(scope, id);
 
-    vpc = Vpc.Builder.create(this, "CustomVPC")
+    vpc = Vpc.Builder.create(this, "WorkshopVpc")
         .vpcName(id)
         .ipAddresses(IpAddresses.cidr("10.0.0.0/16"))
         .maxAzs(2)  // Use 2 Availability Zones

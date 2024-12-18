@@ -62,7 +62,7 @@ public class VSCodeIde extends Construct {
 
         // Set up VPC
         if (props.getVpc() == null) {
-            props.setVpc(new CustomVpc(this, "IdeVpc").getVpc());
+            props.setVpc(new WorkshopVpc(this, "WorkshopVpc").getVpc());
         }
 
         // Set up IAM role
@@ -92,9 +92,8 @@ public class VSCodeIde extends Construct {
             .build();
         waitCondition.getNode().addDependency(ideInstance);
 
-        // Setup CLoudFront distribution
-        var distribution = createDistribution(ideInstance);
-        waitCondition.getNode().addDependency(distribution);
+        // Setup CloudFront distribution
+        createDistribution(ideInstance);
 
         // Create password secret
         ideSecretsManagerPassword = Secret.Builder.create(this, "IdePasswordSecret")
@@ -115,7 +114,6 @@ public class VSCodeIde extends Construct {
             .description("Workshop IDE Password")
             .build();
         output.getNode().addDependency(ideSecretsManagerPassword);
-        output.getNode().addDependency(ideInstance);
 
         // Create SSM document
         Map<String, Object> parameters = new HashMap<>();
@@ -236,6 +234,12 @@ public class VSCodeIde extends Construct {
             "HTTP from CloudFront only"
         );
 
+        ideSecurityGroup.addIngressRule(
+            Peer.prefixList(prefixListResource.getAttString("PrefixListId")),
+            Port.tcp(8080),
+            "8080 to App from CloudFront only"
+        );
+
         if (props.isEnableGitea()) {
             ideSecurityGroup.addIngressRule(
                 Peer.ipv4(props.getVpc().getVpcCidrBlock()),
@@ -275,6 +279,7 @@ public class VSCodeIde extends Construct {
                     .build()))
                 .build()))
             .build();
+        ec2Instance.getNode().addDependency(props.getVpc());
 
         // Add additional security groups if any
         props.getAdditionalSecurityGroups().forEach(sg -> ec2Instance.addSecurityGroup(sg));
@@ -296,6 +301,18 @@ public class VSCodeIde extends Construct {
                 .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER)
                 .viewerProtocolPolicy(ViewerProtocolPolicy.ALLOW_ALL)
                 .build())
+            .additionalBehaviors(Map.of(
+                "/app/*", BehaviorOptions.builder()
+                    .origin(new HttpOrigin(ec2Instance.getInstancePublicDnsName(),
+                        HttpOriginProps.builder()
+                            .protocolPolicy(OriginProtocolPolicy.HTTP_ONLY)
+                            .httpPort(8080)
+                            .build()))
+                    .allowedMethods(AllowedMethods.ALLOW_ALL)
+                    .cachePolicy(CachePolicy.CACHING_DISABLED)
+                    .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER)
+                    .viewerProtocolPolicy(ViewerProtocolPolicy.ALLOW_ALL)
+                    .build()))
             .httpVersion(HttpVersion.HTTP2)
             .build();
         var output = CfnOutput.Builder.create(this, "IdeUrl")

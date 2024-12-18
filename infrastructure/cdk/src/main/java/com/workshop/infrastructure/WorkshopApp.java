@@ -12,7 +12,7 @@ public class WorkshopApp {
     public static void main(final String[] args) {
         App app = new App();
 
-        var workshopStack = new WorkshopStack(app, "UnicornStack");
+        var workshopStack = new WorkshopStack(app, "WorkshopStack");
 
         // Add CDK-NAG checks: https://github.com/cdklabs/cdk-nag
         // Add suppression to exclude certain findings that are not needed for Workshop environment
