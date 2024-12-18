@@ -68,16 +68,15 @@ public class WorkshopStack extends Stack {
         // Create security group for Unicorn application with access to DB, EKS, IDE
         var unicornSecurityGroup = SecurityGroup.Builder.create(this, "UnicornSecurityGroup")
             .vpc(workshopVpc.getVpc())
-            .allowAllOutbound(true)
+            .allowAllOutbound(false)
             .securityGroupName("Unicorn security group")
             .description("Unicorn security group")
             .build();
 
         // Add ingress rule to allow all traffic from within the same security group
-        unicornSecurityGroup.addIngressRule(
-            Peer.securityGroupId(unicornSecurityGroup.getSecurityGroupId()),
+        unicornSecurityGroup.getConnections().allowInternally(
             Port.allTraffic(),
-            "Allow all traffic from resources in the same security group"
+            "Allow all internal traffic"
         );
 
         createVSCodeIde(vpc, ideRole, unicornSecurityGroup);
@@ -88,7 +87,7 @@ public class WorkshopStack extends Stack {
         workshopInfrastructure.getParamJdbc().grantRead(ideRole);
 
         var eksClusterName = "unicorn-store";
-        var workshopEKSCluster = new EKSCluster(this, eksClusterName, vpc, unicornSecurityGroup);
+        var workshopEKSCluster = new EKSCluster(this, eksClusterName, vpc, unicornSecurityGroup, accountId);
 
         // Add access to the EKS cluster
         var ideRoleEKSAccessEntry = CfnAccessEntry.Builder.create(this, "IdeRoleEKSAccessEntry")

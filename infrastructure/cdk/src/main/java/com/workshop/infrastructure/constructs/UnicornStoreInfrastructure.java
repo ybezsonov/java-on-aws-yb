@@ -2,8 +2,8 @@ package com.workshop.infrastructure.constructs;
 
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.services.ec2.Vpc;
-import software.amazon.awscdk.services.ec2.Peer;
-import software.amazon.awscdk.services.ec2.Port;
+// import software.amazon.awscdk.services.ec2.Peer;
+// import software.amazon.awscdk.services.ec2.Port;
 import software.amazon.awscdk.services.ec2.SecurityGroup;
 import software.amazon.awscdk.services.ec2.SubnetSelection;
 import software.amazon.awscdk.services.ec2.SubnetType;
@@ -26,7 +26,6 @@ import software.amazon.awscdk.services.ssm.StringParameter;
 
 import software.constructs.Construct;
 
-import java.security.Security;
 import java.util.List;
 
 public class UnicornStoreInfrastructure extends Construct {

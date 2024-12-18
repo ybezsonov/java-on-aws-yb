@@ -434,19 +434,34 @@ Resources:
     Properties:
       GroupDescription: Unicorn security group
       GroupName: Unicorn security group
-      SecurityGroupEgress:
-        - CidrIp: 0.0.0.0/0
-          Description: Allow all outbound traffic by default
-          IpProtocol: "-1"
-      SecurityGroupIngress:
-        - Description: Allow all traffic from resources in the same security group
-          IpProtocol: "-1"
-          SourceSecurityGroupId:
-            Fn::GetAtt:
-              - UnicornSecurityGroup011849F2
-              - GroupId
       VpcId:
         Ref: WorkshopVpcB0E7649D
+  UnicornSecurityGroupfromWorkshopStackUnicornSecurityGroupE2ACD42AALLTRAFFICB3E79121:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow all internal traffic
+      GroupId:
+        Fn::GetAtt:
+          - UnicornSecurityGroup011849F2
+          - GroupId
+      IpProtocol: "-1"
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - UnicornSecurityGroup011849F2
+          - GroupId
+  UnicornSecurityGrouptoWorkshopStackUnicornSecurityGroupE2ACD42AALLTRAFFICE9FE5243:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: Allow all internal traffic
+      DestinationSecurityGroupId:
+        Fn::GetAtt:
+          - UnicornSecurityGroup011849F2
+          - GroupId
+      GroupId:
+        Fn::GetAtt:
+          - UnicornSecurityGroup011849F2
+          - GroupId
+      IpProtocol: "-1"
   VSCodeIdeIdeLogGroup364F2B78:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -857,9 +872,9 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
-            default: ""
-            type: String
             description: (Optional) Custom bootstrap script to run.
+            type: String
+            default: ""
         mainSteps:
           - inputs:
               runCommand:
@@ -1105,34 +1120,9 @@ Resources:
                       /opt/aws/bin/cfn-signal -e $exit_code '${waitConditionHandleUrl}'
 
                       exit $exit_code
-                    - environmentContentsZip: ""
+                    - installGitea: echo bootstrapGitea was not provided
                       terminalOnStartup: "true"
-                      installGitea: echo bootstrapGitea was not provided
-                      domain: ""
-                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
-                      readmeUrl: ""
-                      instanceIamRoleArn:
-                        Fn::GetAtt:
-                          - IdeRoleE8AB7A1E
-                          - Arn
-                      splashUrl: ""
-                      instanceIamRoleName:
-                        Ref: IdeRoleE8AB7A1E
-                      codeServerVersion: 4.95.3
-                      customBootstrapScript: |
-                        date
-
-                        echo '=== Clone Git repository ==='
-                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
-                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
-
-                        echo '=== Setup IDE ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
-
-                        echo '=== Setup App ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
+                      environmentContentsZip: ""
                       passwordName:
                         Fn::Join:
                           - "-"
@@ -1154,6 +1144,31 @@ Resources:
                                         - Fn::Split:
                                             - ":"
                                             - Ref: VSCodeIdeIdePasswordSecret39AD78F3
+                      customBootstrapScript: |
+                        date
+
+                        echo '=== Clone Git repository ==='
+                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
+                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
+
+                        echo '=== Setup IDE ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
+
+                        echo '=== Setup App ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
+                      codeServerVersion: 4.95.3
+                      instanceIamRoleName:
+                        Ref: IdeRoleE8AB7A1E
+                      splashUrl: ""
+                      instanceIamRoleArn:
+                        Fn::GetAtt:
+                          - IdeRoleE8AB7A1E
+                          - Arn
+                      readmeUrl: ""
+                      waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
+                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                      domain: ""
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -1289,12 +1304,12 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
-      InstanceId:
-        Ref: VSCodeIdeIdeEC2Instance846AE373
-      SsmDocument:
-        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
       LogGroupName:
         Ref: VSCodeIdeIdeLogGroup364F2B78
+      SsmDocument:
+        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
+      InstanceId:
+        Ref: VSCodeIdeIdeEC2Instance846AE373
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   WorkshopStackpostgresAE403B92:
@@ -1782,6 +1797,8 @@ Resources:
             - Ref: AWS::AccountId
             - :role/unicorn-store-eks-pod-role
       ServiceAccount: default
+    DependsOn:
+      - unicornstoreEKSCluster593038F7
   IdeRoleEKSAccessEntry:
     Type: AWS::EKS::AccessEntry
     Properties:

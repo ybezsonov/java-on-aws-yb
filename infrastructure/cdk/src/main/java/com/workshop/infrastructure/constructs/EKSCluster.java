@@ -1,6 +1,5 @@
 package com.workshop.infrastructure.constructs;
 
-import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.services.ec2.Vpc;
 import software.amazon.awscdk.services.eks.CfnCluster;
 import software.amazon.awscdk.services.eks.CfnCluster.LoggingProperty;
@@ -27,14 +26,13 @@ import software.amazon.awscdk.services.iam.PolicyStatement;
 import software.amazon.awscdk.Tags;
 import software.constructs.Construct;
 
-import java.security.Security;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class EKSCluster extends Construct {
 
-    public EKSCluster(final Construct scope, final String id, final Vpc vpc, final SecurityGroup sg) {
+    public EKSCluster(final Construct scope, final String id, final Vpc vpc, final SecurityGroup sg, final String accountId) {
         super(scope, id);
 
         // Add tags to subnets to enable Load Balancers
@@ -90,7 +88,7 @@ public class EKSCluster extends Construct {
         );
 
         // Create EKS cluster
-        CfnCluster.Builder.create(this, "EKSCluster")
+        var eksCluster = CfnCluster.Builder.create(this, "EKSCluster")
             .version("1.31")
             .name(id)
             // Enable EKS Auto Mode
@@ -140,11 +138,12 @@ public class EKSCluster extends Construct {
                 .build())
             .build();
 
-            CfnPodIdentityAssociation.Builder.create(this, "CfnPodIdentityAssociationDefault")
-                .clusterName(id)
-                .namespace("default")
-                .roleArn("arn:aws:iam::" + Stack.of(this).getAccount() + ":role/unicorn-store-eks-pod-role")
-                .serviceAccount("default")
-                .build();
+        var podIdentityAssociation = CfnPodIdentityAssociation.Builder.create(this, "CfnPodIdentityAssociationDefault")
+            .clusterName(id)
+            .namespace("default")
+            .roleArn("arn:aws:iam::" + accountId + ":role/unicorn-store-eks-pod-role")
+            .serviceAccount("default")
+            .build();
+        podIdentityAssociation.getNode().addDependency(eksCluster);
     }
 }
