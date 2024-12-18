@@ -1,7 +1,5 @@
 package com.workshop.infrastructure.constructs;
 
-import com.workshop.infrastructure.constructs.VSCodeIdeProps;
-
 import software.amazon.awscdk.CfnWaitCondition;
 import software.amazon.awscdk.CfnWaitConditionHandle;
 import software.amazon.awscdk.CustomResource;
@@ -17,12 +15,10 @@ import software.amazon.awscdk.services.cloudfront.OriginRequestPolicy;
 import software.amazon.awscdk.services.cloudfront.ViewerProtocolPolicy;
 import software.amazon.awscdk.services.cloudfront.origins.HttpOrigin;
 import software.amazon.awscdk.services.cloudfront.origins.HttpOriginProps;
-import software.amazon.awscdk.services.cloudfront.BehaviorOptions;
 import software.amazon.awscdk.services.ec2.BlockDevice;
 import software.amazon.awscdk.services.ec2.BlockDeviceVolume;
 import software.amazon.awscdk.services.ec2.EbsDeviceOptions;
 import software.amazon.awscdk.services.ec2.EbsDeviceVolumeType;
-import software.amazon.awscdk.services.ec2.Vpc;
 import software.amazon.awscdk.services.ec2.Instance;
 import software.amazon.awscdk.services.ec2.Peer;
 import software.amazon.awscdk.services.ec2.Port;
@@ -30,6 +26,7 @@ import software.amazon.awscdk.services.ec2.SecurityGroup;
 import software.amazon.awscdk.services.ec2.SubnetSelection;
 import software.amazon.awscdk.services.ec2.SubnetType;
 import software.amazon.awscdk.services.iam.IManagedPolicy;
+import software.amazon.awscdk.services.iam.InstanceProfile;
 import software.amazon.awscdk.services.iam.ManagedPolicy;
 import software.amazon.awscdk.services.iam.PolicyStatement;
 import software.amazon.awscdk.services.iam.Role;
@@ -56,6 +53,9 @@ import java.util.List;
 import java.util.Map;
 
 public class VSCodeIde extends Construct {
+
+    private CustomResource passwordResource;
+    private Secret ideSecretsManagerPassword;
 
     public VSCodeIde(final Construct scope, final String id, final VSCodeIdeProps props) {
         super(scope, id);
@@ -97,7 +97,7 @@ public class VSCodeIde extends Construct {
         waitCondition.getNode().addDependency(distribution);
 
         // Create password secret
-        var ideSecretsManagerPassword = Secret.Builder.create(this, "IdePasswordSecret")
+        ideSecretsManagerPassword = Secret.Builder.create(this, "IdePasswordSecret")
             .generateSecretString(SecretStringGenerator.builder()
                 .excludePunctuation(true)
                 .passwordLength(32)
@@ -108,12 +108,10 @@ public class VSCodeIde extends Construct {
                 .build())
             .build();
         ideInstance.getNode().addDependency(ideSecretsManagerPassword);
-        
+
         ideSecretsManagerPassword.grantRead(props.getRole());
         var output = CfnOutput.Builder.create(this, "IdePassword")
-            .value(ideSecretsManagerPassword
-                .secretValueFromJson("password")
-                .unsafeUnwrap())
+            .value(getIdePassword())
             .description("Workshop IDE Password")
             .build();
         output.getNode().addDependency(ideSecretsManagerPassword);
@@ -249,7 +247,12 @@ public class VSCodeIde extends Construct {
                 Port.tcp(2222),
                 "Gitea SSH from VPC"
             );
-        }       
+        }
+
+        var instanceProfile = InstanceProfile.Builder.create(this, "IdeInstanceProfile")
+            .role(props.getRole())
+            .instanceProfileName(props.getRole().getRoleName())
+            .build();
 
         // Create EC2 instance
         var ec2Instance = Instance.Builder.create(this, "IdeEC2Instance")
@@ -257,7 +260,8 @@ public class VSCodeIde extends Construct {
             .vpc(props.getVpc())
             .machineImage(props.getMachineImage())
             .instanceType(props.getInstanceType())
-            .role(props.getRole())
+            // .role(props.getRole())
+            .instanceProfile(instanceProfile)
             .securityGroup(ideSecurityGroup)
             .vpcSubnets(SubnetSelection.builder()
                 .subnetType(SubnetType.PUBLIC)
@@ -300,6 +304,28 @@ public class VSCodeIde extends Construct {
             .build();
         output.getNode().addDependency(distribution);
         return distribution;
+    }
+
+    private String getIdePassword() {
+        if (passwordResource == null) {
+            Function passwordFunction = Function.Builder.create(this, "IdePasswordExporterFunction")
+                .code(Code.fromInline(loadFile("/password.py")))
+                .handler("index.lambda_handler")
+                .runtime(Runtime.PYTHON_3_13)
+                .timeout(Duration.minutes(3))
+                .build();
+
+            ideSecretsManagerPassword.grantRead(passwordFunction);
+
+            passwordResource = CustomResource.Builder.create(this, "IdePasswordExporter")
+                .serviceToken(passwordFunction.getFunctionArn())
+                .properties(Map.of(
+                    "PasswordName", this.ideSecretsManagerPassword.getSecretName()
+                ))
+                .build();
+        }
+
+        return passwordResource.getAttString("password");
     }
 
     private String loadFile(String filePath) {

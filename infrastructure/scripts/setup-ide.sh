@@ -5,8 +5,8 @@ cd /tmp
 # temporarily disable the libuv use of io_uring https://github.com/amazonlinux/amazon-linux-2023/issues/840
 export UV_USE_IO_URING=0
 
-echo "Installing additional packages ..."
-sudo dnf install -y jq
+# echo "Installing additional packages ..."
+# sudo dnf install -y jq
 
 echo "Installing AWS SAM CLI ..."
 wget -q https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
@@ -72,18 +72,18 @@ cat << EOF | sudo tee /etc/docker/daemon.json
 }
 EOF
 
-sudo systemctl restart docker 
+sudo systemctl restart docker
 # docker info --format '{{json .Driver}}'
 # docker info --format '{{json .DriverStatus}}'
 
-echo "Installing docker buildx ..."
-BUILDX_VERSION=$(curl --silent "https://api.github.com/repos/docker/buildx/releases/latest" |jq -r .tag_name)
-curl -sS -JLO "https://github.com/docker/buildx/releases/download/$BUILDX_VERSION/buildx-$BUILDX_VERSION.linux-amd64"
-mkdir -p ~/.docker/cli-plugins
-mv "buildx-$BUILDX_VERSION.linux-amd64" ~/.docker/cli-plugins/docker-buildx
-chmod +x ~/.docker/cli-plugins/docker-buildx
-docker run --privileged --rm tonistiigi/binfmt --install all
-docker buildx create --use --driver=docker-container
+# echo "Installing docker buildx ..."
+# BUILDX_VERSION=$(curl --silent "https://api.github.com/repos/docker/buildx/releases/latest" |jq -r .tag_name)
+# curl -sS -JLO "https://github.com/docker/buildx/releases/download/$BUILDX_VERSION/buildx-$BUILDX_VERSION.linux-amd64"
+# mkdir -p ~/.docker/cli-plugins
+# mv "buildx-$BUILDX_VERSION.linux-amd64" ~/.docker/cli-plugins/docker-buildx
+# chmod +x ~/.docker/cli-plugins/docker-buildx
+# docker run --privileged --rm tonistiigi/binfmt --install all
+# docker buildx create --use --driver=docker-container
 
 echo "Installing kubectl ..."
 # https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
@@ -98,21 +98,21 @@ wget -nv -O eks-node-viewer https://github.com/awslabs/eks-node-viewer/releases/
 chmod +x eks-node-viewer
 sudo mv -v eks-node-viewer /usr/local/bin
 
-echo "Installing eksctl ..."
-ARCH=amd64
-PLATFORM=$(uname -s)_$ARCH
-curl -sS -sLO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
-# (Optional) Verify checksum
-curl -sS -sL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
-tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
-sudo mv /tmp/eksctl /usr/local/bin
-eksctl version
+# echo "Installing eksctl ..."
+# ARCH=amd64
+# PLATFORM=$(uname -s)_$ARCH
+# curl -sS -sLO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+# # (Optional) Verify checksum
+# curl -sS -sL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+# tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+# sudo mv /tmp/eksctl /usr/local/bin
+# eksctl version
 
-echo "Installing Helm ..."
-curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-chmod 700 get_helm.sh
-./get_helm.sh
-helm version
+# echo "Installing Helm ..."
+# curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+# chmod 700 get_helm.sh
+# ./get_helm.sh
+# helm version
 
 echo "Installing Session Manager plugin ..."
 curl -sS "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm" -o "session-manager-plugin.rpm"

@@ -105,7 +105,7 @@ public class EKSCluster extends Construct {
             // !!! for EKS Auto Mode we need to enable computeConfig + elasticLoadBalancing + storageConfig
             .storageConfig(StorageConfigProperty.builder()
                 .blockStorage(BlockStorageProperty.builder()
-                        .enabled(true) 
+                        .enabled(true)
                         .build())
                 .build())
             .resourcesVpcConfig(ResourcesVpcConfigProperty.builder()

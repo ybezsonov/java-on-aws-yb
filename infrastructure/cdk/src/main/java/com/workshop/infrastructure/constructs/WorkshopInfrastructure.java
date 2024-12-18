@@ -17,7 +17,6 @@ import software.amazon.awscdk.services.iam.ServicePrincipal;
 import software.amazon.awscdk.services.rds.AuroraPostgresClusterEngineProps;
 import software.amazon.awscdk.services.rds.AuroraPostgresEngineVersion;
 import software.amazon.awscdk.services.rds.ClusterInstance;
-import software.amazon.awscdk.services.rds.ClusterInstanceProps;
 import software.amazon.awscdk.services.rds.Credentials;
 import software.amazon.awscdk.services.rds.DatabaseCluster;
 import software.amazon.awscdk.services.rds.DatabaseClusterEngine;
@@ -25,16 +24,12 @@ import software.amazon.awscdk.services.rds.DatabaseSecret;
 import software.amazon.awscdk.services.ssm.ParameterTier;
 import software.amazon.awscdk.services.ssm.StringParameter;
 
-import io.github.cdklabs.cdknag.NagPackSuppression;
-import io.github.cdklabs.cdknag.NagSuppressions;
-
 import software.constructs.Construct;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class WorkshopInfrastructure extends Construct {
-    
+
     private DatabaseSecret databaseSecret;
     private StringParameter paramJdbc;
     private EventBus eventBridge;
@@ -54,7 +49,7 @@ public class WorkshopInfrastructure extends Construct {
 
         databaseSecret = createDatabaseSecret();
         var databaseUrl = createDatabase(vpc, databaseSecret);
-        
+
         paramJdbc = StringParameter.Builder.create(this, "SsmParameterDatabaseJDBCConnectionString")
             .allowedPattern(".*")
             .description("databaseJDBCConnectionString")
@@ -65,7 +60,7 @@ public class WorkshopInfrastructure extends Construct {
 
         eventBridge = createEventBus();
 
-        var unicornStoreECR = Repository.Builder.create(this, "unicornstore-ecr")
+        Repository.Builder.create(this, "unicornstore-ecr")
             .repositoryName("unicorn-store-spring")
             .imageScanOnPush(false)
             .removalPolicy(RemovalPolicy.DESTROY)
@@ -83,7 +78,7 @@ public class WorkshopInfrastructure extends Construct {
         eventBridge.grantPutEventsTo(unicornStoreApprunnerRole);
         databaseSecret.grantRead(unicornStoreApprunnerRole);
         paramJdbc.grantRead(unicornStoreApprunnerRole);
-        
+
         var appRunnerECRAccessRole = Role.Builder.create(this, "unicornstore-apprunner-ecr-access-role")
             .roleName("unicornstore-apprunner-ecr-access-role")
             .assumedBy(new ServicePrincipal("build.apprunner.amazonaws.com")).build();
@@ -101,7 +96,7 @@ public class WorkshopInfrastructure extends Construct {
                     "xray:GetSamplingTargets", "xray:GetSamplingStatisticSummaries",
                     "cloudwatch:PutMetricData", "ssm:GetParameters"))
             .resources(List.of("*")).build();
-        
+
         var unicornStoreEscTaskRole = Role.Builder.create(this, "unicornstore-ecs-task-role")
             .roleName("unicornstore-ecs-task-role")
             .assumedBy(new ServicePrincipal("ecs-tasks.amazonaws.com")).build();
@@ -135,7 +130,7 @@ public class WorkshopInfrastructure extends Construct {
             "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"));
         unicornStoreEscTaskExecutionRole.addToPolicy(AWSOpenTelemetryPolicy);
 
-        eventBridge.grantPutEventsTo(unicornStoreEscTaskRole);        
+        eventBridge.grantPutEventsTo(unicornStoreEscTaskRole);
         databaseSecret.grantRead(unicornStoreEscTaskRole);
         paramJdbc.grantRead(unicornStoreEscTaskRole);
 
@@ -170,17 +165,17 @@ public class WorkshopInfrastructure extends Construct {
 
     private String createDatabase(Vpc vpc, DatabaseSecret databaseSecret) {
         var databaseSecurityGroup = createDatabaseSecurityGroup(vpc);
-        
+
         var cluster = DatabaseCluster.Builder.create(this, "UnicornDatabase")
             .engine(DatabaseClusterEngine.auroraPostgres(
                 AuroraPostgresClusterEngineProps.builder().version(AuroraPostgresEngineVersion.VER_16_4).build()))
             .serverlessV2MinCapacity(0.5)
             .serverlessV2MaxCapacity(4)
-            .writer(ClusterInstance.serverlessV2("writer"))        
+            .writer(ClusterInstance.serverlessV2("writer"))
             .enableDataApi(true)
             .defaultDatabaseName("unicorns")
             .instanceIdentifierBase("UnicornDatabaseInstance")
-            .vpc(vpc)                
+            .vpc(vpc)
             .vpcSubnets(SubnetSelection.builder()
                 .subnetType(SubnetType.PRIVATE_WITH_EGRESS)
                 .build())

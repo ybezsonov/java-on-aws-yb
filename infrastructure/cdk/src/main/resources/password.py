@@ -21,7 +21,7 @@ def lambda_handler(event, context):
             response = secretsmanager.get_secret_value(
                 SecretId=passwordName,
             )
-            
+
             responseData = json.loads(response['SecretString'])
         except Exception as e:
             status = cfnresponse.FAILED

@@ -38,52 +38,52 @@ public class VSCodeIdeProps {
 
     public String getBootstrapScript() { return bootstrapScript; }
     public void setBootstrapScript(String bootstrapScript) { this.bootstrapScript = bootstrapScript; }
-    
+
     public int getDiskSize() { return diskSize; }
     public void setDiskSize(int diskSize) { this.diskSize = diskSize; }
-    
+
     public Vpc getVpc() { return vpc; }
     public void setVpc(Vpc vpc) { this.vpc = vpc; }
-    
+
     public String getAvailabilityZone() { return availabilityZone; }
     public void setAvailabilityZone(String availabilityZone) { this.availabilityZone = availabilityZone; }
-    
+
     public IMachineImage getMachineImage() { return machineImage; }
     public void setMachineImage(IMachineImage machineImage) { this.machineImage = machineImage; }
-    
+
     public InstanceType getInstanceType() { return instanceType; }
     public void setInstanceType(InstanceType instanceType) { this.instanceType = instanceType; }
-    
+
     public String getCodeServerVersion() { return codeServerVersion; }
     public void setCodeServerVersion(String codeServerVersion) { this.codeServerVersion = codeServerVersion; }
-    
+
     public List<IManagedPolicy> getAdditionalIamPolicies() { return additionalIamPolicies; }
     public void setAdditionalIamPolicies(List<IManagedPolicy> additionalIamPolicies) { this.additionalIamPolicies = additionalIamPolicies; }
-    
+
     public List<ISecurityGroup> getAdditionalSecurityGroups() { return additionalSecurityGroups; }
     public void setAdditionalSecurityGroups(List<ISecurityGroup> additionalSecurityGroups) { this.additionalSecurityGroups = additionalSecurityGroups; }
-    
+
     public int getBootstrapTimeoutMinutes() { return bootstrapTimeoutMinutes; }
     public void setBootstrapTimeoutMinutes(int bootstrapTimeoutMinutes) { this.bootstrapTimeoutMinutes = bootstrapTimeoutMinutes; }
-    
+
     public boolean isEnableGitea() { return enableGitea; }
     public void setEnableGitea(boolean enableGitea) { this.enableGitea = enableGitea; }
-    
+
     public String getSplashUrl() { return splashUrl; }
     public void setSplashUrl(String splashUrl) { this.splashUrl = splashUrl; }
-    
+
     public String getReadmeUrl() { return readmeUrl; }
     public void setReadmeUrl(String readmeUrl) { this.readmeUrl = readmeUrl; }
-    
+
     public String getEnvironmentContentsZip() { return environmentContentsZip; }
     public void setEnvironmentContentsZip(String environmentContentsZip) { this.environmentContentsZip = environmentContentsZip; }
-    
+
     public List<String> getExtensions() { return extensions; }
     public void setExtensions(List<String> extensions) { this.extensions = extensions; }
-    
+
     public boolean isTerminalOnStartup() { return terminalOnStartup; }
     public void setTerminalOnStartup(boolean terminalOnStartup) { this.terminalOnStartup = terminalOnStartup; }
-    
+
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
 }

@@ -8,7 +8,7 @@ import com.workshop.infrastructure.constructs.VSCodeIdeProps;
 
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
-import software.amazon.awscdk.CfnOutput;
+// import software.amazon.awscdk.CfnOutput;
 import software.amazon.awscdk.DefaultStackSynthesizer;
 import software.amazon.awscdk.DefaultStackSynthesizerProps;
 import software.amazon.awscdk.services.ec2.Vpc;
@@ -18,12 +18,17 @@ import software.amazon.awscdk.services.ec2.SecurityGroup;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
 import software.amazon.awscdk.services.iam.ManagedPolicy;
+import software.amazon.awscdk.services.iam.PolicyDocument;
 import software.amazon.awscdk.services.eks.CfnAccessEntry;
 import software.amazon.awscdk.services.eks.CfnAccessEntry.AccessScopeProperty;
 import software.amazon.awscdk.services.eks.CfnAccessEntry.AccessPolicyProperty;
 
 import software.constructs.Construct;
-
+import org.json.JSONObject;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
@@ -34,22 +39,33 @@ public class WorkshopStack extends Stack {
             .synthesizer(new DefaultStackSynthesizer(DefaultStackSynthesizerProps.builder()
                 .generateBootstrapVersionRule(false)  // This disables the bootstrap version parameter
                 .build()))
-            .build());       
+            .build());
 
         var accountId = Stack.of(this).getAccount();
-        var region = Stack.of(this).getRegion();
-        var workshopVpc = new CustomVpc(this, "UnicornVpc");        
+        // var region = Stack.of(this).getRegion();
+        var workshopVpc = new CustomVpc(this, "UnicornVpc");
         var vpc = workshopVpc.getVpc();
 
         var ideRole = Role.Builder.create(this, "IdeRole")
             .assumedBy(new ServicePrincipal("ec2.amazonaws.com"))
+            .roleName("java-on-aws-workshop-user")
             .managedPolicies(Arrays.asList(
-                ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"),
-                ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ContainerRegistryPowerUser"),
+                // ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"),
+                // ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ContainerRegistryPowerUser"),
                 ManagedPolicy.fromAwsManagedPolicyName("ReadOnlyAccess"),
                 ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")
             ))
             .build();
+
+        var policyDocumentJson = loadFile("/iam-policy.json");
+        var policyDocument = PolicyDocument.fromJson(new JSONObject(policyDocumentJson).toMap());
+
+        var policy = ManagedPolicy.Builder.create(this, "java-on-aws-workshop-policy")
+            .document(policyDocument)
+            .managedPolicyName("java-on-aws-workshop-policy")
+            .build();
+
+        ideRole.addManagedPolicy(policy);
 
         createVSCodeIde(vpc, ideRole);
 
@@ -61,7 +77,7 @@ public class WorkshopStack extends Stack {
         var eksClusterName = "unicorn-store";
         var workshopEKSCluster = new EKSCluster(this, eksClusterName, vpc);
 
-        // Add access to the EKS cluster            
+        // Add access to the EKS cluster
         var ideRoleEKSAccessEntry = CfnAccessEntry.Builder.create(this, "IdeRoleEKSAccessEntry")
             .clusterName(eksClusterName)
             .principalArn(ideRole.getRoleArn())
@@ -86,11 +102,11 @@ public class WorkshopStack extends Stack {
             .build();
         participantRoleEKSAccessEntry.getNode().addDependency(workshopEKSCluster);
 
-        var kubeconfigCommandOutput = CfnOutput.Builder.create(this, "KubeconfigCommand")
-            .value(String.format("aws eks --region %s update-kubeconfig --name %s", region, eksClusterName))
-            .description("Command to update kubeconfig")
-            .build();
-        kubeconfigCommandOutput.getNode().addDependency(workshopEKSCluster);
+        // var kubeconfigCommandOutput = CfnOutput.Builder.create(this, "KubeconfigCommand")
+        //     .value(String.format("aws eks --region %s update-kubeconfig --name %s", region, eksClusterName))
+        //     .description("Command to update kubeconfig")
+        //     .build();
+        // kubeconfigCommandOutput.getNode().addDependency(workshopEKSCluster);
     }
 
     private void createVSCodeIde(Vpc vpc, Role ideRole) {
@@ -107,7 +123,7 @@ public class WorkshopStack extends Stack {
             echo '=== Setup App ==='
             sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
             """;
-        
+
         var ideProps = new VSCodeIdeProps();
         ideProps.setBootstrapTimeoutMinutes(30);
         ideProps.setBootstrapScript(bootstrapScript);
@@ -135,6 +151,14 @@ public class WorkshopStack extends Stack {
             "vscjava.vscode-java-pack"
         ));
 
-        var vsCodeIde = new VSCodeIde(this, "VSCodeIde", ideProps);
+        new VSCodeIde(this, "VSCodeIde", ideProps);
+    }
+
+        private String loadFile(String filePath) {
+        try {
+            return Files.readString(Path.of(getClass().getResource(filePath).getPath()));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load file " + filePath, e);
+        }
     }
 }
