@@ -429,6 +429,24 @@ Resources:
             Resource: "*"
             Sid: DenyReservations
         Version: "2012-10-17"
+  UnicornSecurityGroup011849F2:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Unicorn security group
+      GroupName: Unicorn security group
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      SecurityGroupIngress:
+        - Description: Allow all traffic from resources in the same security group
+          IpProtocol: "-1"
+          SourceSecurityGroupId:
+            Fn::GetAtt:
+              - UnicornSecurityGroup011849F2
+              - GroupId
+      VpcId:
+        Ref: WorkshopVpcB0E7649D
   VSCodeIdeIdeLogGroup364F2B78:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -526,6 +544,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: IDE security group
+      GroupName: IDE security group
       SecurityGroupEgress:
         - CidrIp: 0.0.0.0/0
           Description: Allow all outbound traffic by default
@@ -547,14 +566,25 @@ Resources:
           - VSCodeIdeIdePrefixListResourceF63186FA
           - PrefixListId
       ToPort: 80
-  VSCodeIdeIdeSecurityGroupfromIndirectPeer28080BE8D9DC0:
+  VSCodeIdeAppSecurityGroup3CD2EECD:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: App security group
+      GroupName: App security group
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      VpcId:
+        Ref: WorkshopVpcB0E7649D
+  VSCodeIdeAppSecurityGroupfromIndirectPeer808079F80B17:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: 8080 to App from CloudFront only
       FromPort: 8080
       GroupId:
         Fn::GetAtt:
-          - VSCodeIdeIdeSecurityGroup69EC68AF
+          - VSCodeIdeAppSecurityGroup3CD2EECD
           - GroupId
       IpProtocol: tcp
       SourcePrefixListId:
@@ -591,6 +621,12 @@ Resources:
       SecurityGroupIds:
         - Fn::GetAtt:
             - VSCodeIdeIdeSecurityGroup69EC68AF
+            - GroupId
+        - Fn::GetAtt:
+            - VSCodeIdeAppSecurityGroup3CD2EECD
+            - GroupId
+        - Fn::GetAtt:
+            - UnicornSecurityGroup011849F2
             - GroupId
       SubnetId:
         Ref: WorkshopVpcPublicSubnet1SubnetF8ABC880
@@ -821,9 +857,9 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
+            default: ""
             type: String
             description: (Optional) Custom bootstrap script to run.
-            default: ""
         mainSteps:
           - inputs:
               runCommand:
@@ -1069,7 +1105,15 @@ Resources:
                       /opt/aws/bin/cfn-signal -e $exit_code '${waitConditionHandleUrl}'
 
                       exit $exit_code
-                    - instanceIamRoleArn:
+                    - environmentContentsZip: ""
+                      terminalOnStartup: "true"
+                      installGitea: echo bootstrapGitea was not provided
+                      domain: ""
+                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                      waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
+                      readmeUrl: ""
+                      instanceIamRoleArn:
                         Fn::GetAtt:
                           - IdeRoleE8AB7A1E
                           - Arn
@@ -1110,14 +1154,6 @@ Resources:
                                         - Fn::Split:
                                             - ":"
                                             - Ref: VSCodeIdeIdePasswordSecret39AD78F3
-                      environmentContentsZip: ""
-                      terminalOnStartup: "true"
-                      installGitea: echo bootstrapGitea was not provided
-                      domain: ""
-                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
-                      readmeUrl: ""
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -1285,25 +1321,6 @@ Resources:
       TargetId:
         Ref: WorkshopStackUnicornStoreDatabase51D86F31
       TargetType: AWS::RDS::DBCluster
-  WorkshopStackDatabaseSecurityGroup9C4FCC24:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: WorkshopStack/WorkshopStack/DatabaseSecurityGroup
-      GroupName: Database Security Group
-      SecurityGroupEgress:
-        - CidrIp: 0.0.0.0/0
-          Description: Allow outbound PostgreSQL responses
-          FromPort: 5432
-          IpProtocol: tcp
-          ToPort: 5432
-      SecurityGroupIngress:
-        - CidrIp: 10.0.0.0/16
-          Description: Allow Database Traffic from VPC
-          FromPort: 5432
-          IpProtocol: tcp
-          ToPort: 5432
-      VpcId:
-        Ref: WorkshopVpcB0E7649D
   WorkshopStackUnicornStoreDatabaseSubnets1B321136:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -1341,7 +1358,7 @@ Resources:
         MinCapacity: 0.5
       VpcSecurityGroupIds:
         - Fn::GetAtt:
-            - WorkshopStackDatabaseSecurityGroup9C4FCC24
+            - UnicornSecurityGroup011849F2
             - GroupId
     UpdateReplacePolicy: Snapshot
     DeletionPolicy: Snapshot
@@ -1376,7 +1393,7 @@ Resources:
             - Fn::GetAtt:
                 - WorkshopStackUnicornStoreDatabase51D86F31
                 - Endpoint.Address
-            - :5432/unicorn-store
+            - :5432/unicorns
   WorkshopStackUnicornEventBus0AEFB3A9:
     Type: AWS::Events::EventBus
     Properties:
@@ -1736,6 +1753,10 @@ Resources:
       ResourcesVpcConfig:
         EndpointPrivateAccess: true
         EndpointPublicAccess: true
+        SecurityGroupIds:
+          - Fn::GetAtt:
+              - UnicornSecurityGroup011849F2
+              - GroupId
         SubnetIds:
           - Ref: WorkshopVpcPrivateSubnet1SubnetD3A11721
           - Ref: WorkshopVpcPrivateSubnet2Subnet1032CD0C
@@ -1749,6 +1770,18 @@ Resources:
       UpgradePolicy:
         SupportType: STANDARD
       Version: "1.31"
+  unicornstoreCfnPodIdentityAssociationDefaultB4C5D021:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties:
+      ClusterName: unicorn-store
+      Namespace: default
+      RoleArn:
+        Fn::Join:
+          - ""
+          - - "arn:aws:iam::"
+            - Ref: AWS::AccountId
+            - :role/unicorn-store-eks-pod-role
+      ServiceAccount: default
   IdeRoleEKSAccessEntry:
     Type: AWS::EKS::AccessEntry
     Properties:
@@ -1762,6 +1795,7 @@ Resources:
           - IdeRoleE8AB7A1E
           - Arn
     DependsOn:
+      - unicornstoreCfnPodIdentityAssociationDefaultB4C5D021
       - unicornstoreEKSCluster593038F7
       - unicornstoreEKSClusterNodeRole8829D9B6
       - unicornstoreEKSClusterRole6494682A
@@ -1780,6 +1814,7 @@ Resources:
             - Ref: AWS::AccountId
             - :role/WSParticipantRole
     DependsOn:
+      - unicornstoreCfnPodIdentityAssociationDefaultB4C5D021
       - unicornstoreEKSCluster593038F7
       - unicornstoreEKSClusterNodeRole8829D9B6
       - unicornstoreEKSClusterRole6494682A

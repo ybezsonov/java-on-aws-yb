@@ -221,10 +221,11 @@ public class VSCodeIde extends Construct {
         policies.addAll(props.getAdditionalIamPolicies());
         policies.forEach(policy -> props.getRole().addManagedPolicy(policy));
 
-        // Create security group
+        // Create security group for IDE access
         SecurityGroup ideSecurityGroup = SecurityGroup.Builder.create(this, "IdeSecurityGroup")
             .vpc(props.getVpc())
             .allowAllOutbound(true)
+            .securityGroupName("IDE security group")
             .description("IDE security group")
             .build();
 
@@ -232,12 +233,6 @@ public class VSCodeIde extends Construct {
             Peer.prefixList(prefixListResource.getAttString("PrefixListId")),
             Port.tcp(80),
             "HTTP from CloudFront only"
-        );
-
-        ideSecurityGroup.addIngressRule(
-            Peer.prefixList(prefixListResource.getAttString("PrefixListId")),
-            Port.tcp(8080),
-            "8080 to App from CloudFront only"
         );
 
         if (props.isEnableGitea()) {
@@ -252,6 +247,20 @@ public class VSCodeIde extends Construct {
                 "Gitea SSH from VPC"
             );
         }
+
+        // Create security group
+        SecurityGroup appSecurityGroup = SecurityGroup.Builder.create(this, "AppSecurityGroup")
+            .vpc(props.getVpc())
+            .allowAllOutbound(true)
+            .securityGroupName("App security group")
+            .description("App security group")
+            .build();
+
+        appSecurityGroup.addIngressRule(
+            Peer.prefixList(prefixListResource.getAttString("PrefixListId")),
+            Port.tcp(8080),
+            "8080 to App from CloudFront only"
+        );
 
         var instanceProfile = InstanceProfile.Builder.create(this, "IdeInstanceProfile")
             .role(props.getRole())
@@ -281,6 +290,7 @@ public class VSCodeIde extends Construct {
             .build();
         ec2Instance.getNode().addDependency(props.getVpc());
 
+        ec2Instance.addSecurityGroup(appSecurityGroup);
         // Add additional security groups if any
         props.getAdditionalSecurityGroups().forEach(sg -> ec2Instance.addSecurityGroup(sg));
 

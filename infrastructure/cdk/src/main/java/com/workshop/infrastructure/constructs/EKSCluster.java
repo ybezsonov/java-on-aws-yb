@@ -1,5 +1,6 @@
 package com.workshop.infrastructure.constructs;
 
+import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.services.ec2.Vpc;
 import software.amazon.awscdk.services.eks.CfnCluster;
 import software.amazon.awscdk.services.eks.CfnCluster.LoggingProperty;
@@ -8,6 +9,7 @@ import software.amazon.awscdk.services.eks.CfnCluster.LoggingTypeConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.AccessConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.ResourcesVpcConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.UpgradePolicyProperty;
+import software.amazon.awscdk.services.eks.CfnPodIdentityAssociation;
 import software.amazon.awscdk.services.eks.CfnCluster.ComputeConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.KubernetesNetworkConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.ElasticLoadBalancingProperty;
@@ -16,6 +18,7 @@ import software.amazon.awscdk.services.eks.CfnCluster.BlockStorageProperty;
 import software.amazon.awscdk.services.ec2.SubnetType;
 import software.amazon.awscdk.services.ec2.SubnetSelection;
 import software.amazon.awscdk.services.ec2.ISubnet;
+import software.amazon.awscdk.services.ec2.SecurityGroup;
 import software.amazon.awscdk.services.iam.ManagedPolicy;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
@@ -24,13 +27,14 @@ import software.amazon.awscdk.services.iam.PolicyStatement;
 import software.amazon.awscdk.Tags;
 import software.constructs.Construct;
 
+import java.security.Security;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class EKSCluster extends Construct {
 
-    public EKSCluster(final Construct scope, final String id, final Vpc vpc) {
+    public EKSCluster(final Construct scope, final String id, final Vpc vpc, final SecurityGroup sg) {
         super(scope, id);
 
         // Add tags to subnets to enable Load Balancers
@@ -114,6 +118,7 @@ public class EKSCluster extends Construct {
                     .build()).getSubnetIds())
                 .endpointPrivateAccess(true)
                 .endpointPublicAccess(true)
+                .securityGroupIds(List.of(sg.getSecurityGroupId()))
                 .build())
             .roleArn(clusterRole.getRoleArn())
             .accessConfig(AccessConfigProperty.builder() // use API mode for cluster access
@@ -134,5 +139,12 @@ public class EKSCluster extends Construct {
                 .supportType("STANDARD")
                 .build())
             .build();
+
+            CfnPodIdentityAssociation.Builder.create(this, "CfnPodIdentityAssociationDefault")
+                .clusterName(id)
+                .namespace("default")
+                .roleArn("arn:aws:iam::" + Stack.of(this).getAccount() + ":role/unicorn-store-eks-pod-role")
+                .serviceAccount("default")
+                .build();
     }
 }

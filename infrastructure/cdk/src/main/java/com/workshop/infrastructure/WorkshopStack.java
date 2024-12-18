@@ -11,6 +11,9 @@ import software.amazon.awscdk.StackProps;
 // import software.amazon.awscdk.CfnOutput;
 import software.amazon.awscdk.DefaultStackSynthesizer;
 import software.amazon.awscdk.DefaultStackSynthesizerProps;
+import software.amazon.awscdk.services.ec2.Peer;
+import software.amazon.awscdk.services.ec2.Port;
+import software.amazon.awscdk.services.ec2.SecurityGroup;
 import software.amazon.awscdk.services.ec2.Vpc;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
@@ -62,15 +65,30 @@ public class WorkshopStack extends Stack {
 
         ideRole.addManagedPolicy(policy);
 
-        createVSCodeIde(vpc, ideRole);
+        // Create security group for Unicorn application with access to DB, EKS, IDE
+        var unicornSecurityGroup = SecurityGroup.Builder.create(this, "UnicornSecurityGroup")
+            .vpc(workshopVpc.getVpc())
+            .allowAllOutbound(true)
+            .securityGroupName("Unicorn security group")
+            .description("Unicorn security group")
+            .build();
 
-        var workshopInfrastructure = new UnicornStoreInfrastructure(this, id, vpc);
+        // Add ingress rule to allow all traffic from within the same security group
+        unicornSecurityGroup.addIngressRule(
+            Peer.securityGroupId(unicornSecurityGroup.getSecurityGroupId()),
+            Port.allTraffic(),
+            "Allow all traffic from resources in the same security group"
+        );
+
+        createVSCodeIde(vpc, ideRole, unicornSecurityGroup);
+
+        var workshopInfrastructure = new UnicornStoreInfrastructure(this, id, vpc, unicornSecurityGroup);
         workshopInfrastructure.getEventBridge().grantPutEventsTo(ideRole);
         workshopInfrastructure.getDatabaseSecret().grantRead(ideRole);
         workshopInfrastructure.getParamJdbc().grantRead(ideRole);
 
         var eksClusterName = "unicorn-store";
-        var workshopEKSCluster = new EKSCluster(this, eksClusterName, vpc);
+        var workshopEKSCluster = new EKSCluster(this, eksClusterName, vpc, unicornSecurityGroup);
 
         // Add access to the EKS cluster
         var ideRoleEKSAccessEntry = CfnAccessEntry.Builder.create(this, "IdeRoleEKSAccessEntry")
@@ -104,7 +122,7 @@ public class WorkshopStack extends Stack {
         // kubeconfigCommandOutput.getNode().addDependency(workshopEKSCluster);
     }
 
-    private void createVSCodeIde(Vpc vpc, Role ideRole) {
+    private void createVSCodeIde(Vpc vpc, Role ideRole, SecurityGroup sg) {
         String bootstrapScript = """
             date
 
@@ -124,6 +142,7 @@ public class WorkshopStack extends Stack {
         ideProps.setBootstrapScript(bootstrapScript);
         ideProps.setRole(ideRole);
         ideProps.setVpc(vpc);
+        ideProps.setAdditionalSecurityGroups(Arrays.asList(sg));
         ideProps.setAvailabilityZone(vpc.getAvailabilityZones().get(0));
         ideProps.setTerminalOnStartup(true);
         ideProps.setExtensions(Arrays.asList(
