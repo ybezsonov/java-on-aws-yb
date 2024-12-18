@@ -1253,12 +1253,12 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
+      InstanceId:
+        Ref: VSCodeIdeIdeEC2Instance846AE373
       SsmDocument:
         Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
       LogGroupName:
         Ref: VSCodeIdeIdeLogGroup364F2B78
-      InstanceId:
-        Ref: VSCodeIdeIdeEC2Instance846AE373
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   WorkshopStackpostgresAE403B92:
@@ -1319,7 +1319,7 @@ Resources:
       DBClusterParameterGroupName: default.aurora-postgresql16
       DBSubnetGroupName:
         Ref: WorkshopStackUnicornStoreDatabaseSubnets1B321136
-      DatabaseName: unicorn-store
+      DatabaseName: unicorns
       EnableHttpEndpoint: true
       Engine: aurora-postgresql
       EngineVersion: "16.4"

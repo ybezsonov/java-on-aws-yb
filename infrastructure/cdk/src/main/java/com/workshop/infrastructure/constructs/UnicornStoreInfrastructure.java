@@ -173,7 +173,7 @@ public class UnicornStoreInfrastructure extends Construct {
             .serverlessV2MaxCapacity(4)
             .writer(ClusterInstance.serverlessV2("writer"))
             .enableDataApi(true)
-            .defaultDatabaseName("unicorn-store")
+            .defaultDatabaseName("unicorns")
             .clusterIdentifier("unicorn-store-database")
             .instanceIdentifierBase("unicorn-store-database-instance")
             .vpc(vpc)
