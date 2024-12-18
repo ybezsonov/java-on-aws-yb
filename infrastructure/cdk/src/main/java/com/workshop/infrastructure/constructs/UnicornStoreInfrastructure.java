@@ -82,8 +82,9 @@ public class UnicornStoreInfrastructure extends Construct {
         var appRunnerECRAccessRole = Role.Builder.create(this, "UnicornStoreApprunnerEcrAccessRole")
             .roleName("unicorn-store-apprunner-ecr-access-role")
             .assumedBy(new ServicePrincipal("build.apprunner.amazonaws.com")).build();
-        appRunnerECRAccessRole.addManagedPolicy(
-            ManagedPolicy.fromAwsManagedPolicyName("AWSAppRunnerServicePolicyForECRAccess"));
+        appRunnerECRAccessRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this,
+            "UnicornStoreApprunnerEcrAccessRole-" + "AWSAppRunnerServicePolicyForECRAccess",
+            "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"));
 
         // Roles - ECS
         var AWSOpenTelemetryPolicy = PolicyStatement.Builder.create()
@@ -103,10 +104,13 @@ public class UnicornStoreInfrastructure extends Construct {
             .actions(List.of("xray:PutTraceSegments"))
             .resources(List.of("*"))
             .build());
-        unicornStoreEscTaskRole.addManagedPolicy(
-            ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"));
-        unicornStoreEscTaskRole.addManagedPolicy(
-            ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMReadOnlyAccess"));
+        unicornStoreEscTaskRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this,
+            "UnicornStoreEcsTaskRole-" + "CloudWatchLogsFullAccess",
+            "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"));
+        unicornStoreEscTaskRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this,
+            "UnicornStoreEcsTaskRole-" + "AmazonSSMReadOnlyAccess",
+            "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"));
+        unicornStoreEscTaskRole.addToPolicy(AWSOpenTelemetryPolicy);
 
         eventBridge.grantPutEventsTo(unicornStoreEscTaskRole);
         databaseSecret.grantRead(unicornStoreEscTaskRole);
@@ -119,12 +123,16 @@ public class UnicornStoreInfrastructure extends Construct {
             .actions(List.of("logs:CreateLogGroup"))
             .resources(List.of("*"))
             .build());
-        unicornStoreEscTaskExecutionRole.addManagedPolicy(
-            ManagedPolicy.fromAwsManagedPolicyName("AmazonECSTaskExecutionRolePolicy"));
-        unicornStoreEscTaskExecutionRole.addManagedPolicy(
-            ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"));
-        unicornStoreEscTaskExecutionRole.addManagedPolicy(
-            ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMReadOnlyAccess"));
+        unicornStoreEscTaskExecutionRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this,
+            "UnicornStoreEcsTaskExecutionRole-" + "AmazonECSTaskExecutionRolePolicy",
+            "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"));
+        unicornStoreEscTaskExecutionRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this,
+            "UnicornStoreEcsTaskExecutionRole-" + "CloudWatchLogsFullAccess",
+            "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"));
+        unicornStoreEscTaskExecutionRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this,
+            "UnicornStoreEcsTaskExecutionRole-" + "AmazonSSMReadOnlyAccess",
+            "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"));
+        unicornStoreEscTaskExecutionRole.addToPolicy(AWSOpenTelemetryPolicy);
 
         databaseSecret.grantRead(unicornStoreEscTaskExecutionRole);
         paramJdbc.grantRead(unicornStoreEscTaskExecutionRole);
@@ -139,8 +147,9 @@ public class UnicornStoreInfrastructure extends Construct {
             .actions(List.of("xray:PutTraceSegments"))
             .resources(List.of("*"))
             .build());
-            unicornStoreEksPodRole.addManagedPolicy(
-            ManagedPolicy.fromAwsManagedPolicyName("CloudWatchAgentServerPolicy"));
+        unicornStoreEksPodRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this,
+            "UnicornStoreEksPodRole-" + "CloudWatchAgentServerPolicy",
+            "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"));
 
         eventBridge.grantPutEventsTo(unicornStoreEksPodRole);
         databaseSecret.grantRead(unicornStoreEksPodRole);

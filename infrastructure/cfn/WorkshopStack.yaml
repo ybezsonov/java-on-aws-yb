@@ -821,9 +821,9 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
-            default: ""
             type: String
             description: (Optional) Custom bootstrap script to run.
+            default: ""
         mainSteps:
           - inputs:
               runCommand:
@@ -1069,14 +1069,7 @@ Resources:
                       /opt/aws/bin/cfn-signal -e $exit_code '${waitConditionHandleUrl}'
 
                       exit $exit_code
-                    - terminalOnStartup: "true"
-                      installGitea: echo bootstrapGitea was not provided
-                      domain: ""
-                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
-                      readmeUrl: ""
-                      instanceIamRoleArn:
+                    - instanceIamRoleArn:
                         Fn::GetAtt:
                           - IdeRoleE8AB7A1E
                           - Arn
@@ -1118,6 +1111,13 @@ Resources:
                                             - ":"
                                             - Ref: VSCodeIdeIdePasswordSecret39AD78F3
                       environmentContentsZip: ""
+                      terminalOnStartup: "true"
+                      installGitea: echo bootstrapGitea was not provided
+                      domain: ""
+                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                      waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
+                      readmeUrl: ""
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -1253,12 +1253,12 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
-      InstanceId:
-        Ref: VSCodeIdeIdeEC2Instance846AE373
       SsmDocument:
         Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
       LogGroupName:
         Ref: VSCodeIdeIdeLogGroup364F2B78
+      InstanceId:
+        Ref: VSCodeIdeIdeEC2Instance846AE373
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   WorkshopStackpostgresAE403B92:
@@ -1453,11 +1453,7 @@ Resources:
               Service: build.apprunner.amazonaws.com
         Version: "2012-10-17"
       ManagedPolicyArns:
-        - Fn::Join:
-            - ""
-            - - "arn:"
-              - Ref: AWS::Partition
-              - :iam::aws:policy/AWSAppRunnerServicePolicyForECRAccess
+        - arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
       RoleName: unicorn-store-apprunner-ecr-access-role
   WorkshopStackUnicornStoreEcsTaskRoleB4BD8EC1:
     Type: AWS::IAM::Role
@@ -1470,23 +1466,28 @@ Resources:
               Service: ecs-tasks.amazonaws.com
         Version: "2012-10-17"
       ManagedPolicyArns:
-        - Fn::Join:
-            - ""
-            - - "arn:"
-              - Ref: AWS::Partition
-              - :iam::aws:policy/CloudWatchLogsFullAccess
-        - Fn::Join:
-            - ""
-            - - "arn:"
-              - Ref: AWS::Partition
-              - :iam::aws:policy/AmazonSSMReadOnlyAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
       RoleName: unicorn-store-ecs-task-role
   WorkshopStackUnicornStoreEcsTaskRoleDefaultPolicy4EA6FF1B:
     Type: AWS::IAM::Policy
     Properties:
       PolicyDocument:
         Statement:
-          - Action: xray:PutTraceSegments
+          - Action:
+              - cloudwatch:PutMetricData
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
+              - logs:PutLogEvents
+              - logs:PutRetentionPolicy
+              - ssm:GetParameters
+              - xray:GetSamplingRules
+              - xray:GetSamplingStatisticSummaries
+              - xray:GetSamplingTargets
+              - xray:PutTelemetryRecords
+              - xray:PutTraceSegments
             Effect: Allow
             Resource: "*"
           - Action: events:PutEvents
@@ -1533,28 +1534,29 @@ Resources:
               Service: ecs-tasks.amazonaws.com
         Version: "2012-10-17"
       ManagedPolicyArns:
-        - Fn::Join:
-            - ""
-            - - "arn:"
-              - Ref: AWS::Partition
-              - :iam::aws:policy/AmazonECSTaskExecutionRolePolicy
-        - Fn::Join:
-            - ""
-            - - "arn:"
-              - Ref: AWS::Partition
-              - :iam::aws:policy/CloudWatchLogsFullAccess
-        - Fn::Join:
-            - ""
-            - - "arn:"
-              - Ref: AWS::Partition
-              - :iam::aws:policy/AmazonSSMReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
       RoleName: unicorn-store-ecs-task-execution-role
   WorkshopStackUnicornStoreEcsTaskExecutionRoleDefaultPolicy56D3B2E4:
     Type: AWS::IAM::Policy
     Properties:
       PolicyDocument:
         Statement:
-          - Action: logs:CreateLogGroup
+          - Action:
+              - cloudwatch:PutMetricData
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
+              - logs:PutLogEvents
+              - logs:PutRetentionPolicy
+              - ssm:GetParameters
+              - xray:GetSamplingRules
+              - xray:GetSamplingStatisticSummaries
+              - xray:GetSamplingTargets
+              - xray:PutTelemetryRecords
+              - xray:PutTraceSegments
             Effect: Allow
             Resource: "*"
           - Action:
@@ -1597,11 +1599,7 @@ Resources:
               Service: pods.eks.amazonaws.com
         Version: "2012-10-17"
       ManagedPolicyArns:
-        - Fn::Join:
-            - ""
-            - - "arn:"
-              - Ref: AWS::Partition
-              - :iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
       RoleName: unicorn-store-eks-pod-role
   WorkshopStackUnicornStoreEksPodRoleDefaultPolicy6979737E:
     Type: AWS::IAM::Policy
