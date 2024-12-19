@@ -38,7 +38,7 @@ public class WorkshopEksStack extends Stack {
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-deploy-eks-kubeconfig.sh"
-        // sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-deploy-eks-manifests.sh"
+        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-deploy-eks-manifests.sh"
         """;
 
     public WorkshopEksStack(final Construct scope, final String id) {
