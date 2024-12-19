@@ -23,3 +23,14 @@ while ! kubectl get ns; do
     echo "Failed to get namespaces. Retrying in 10 seconds..."
     sleep 10
 done
+
+cat <<EOF | kubectl create -f -
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  labels:
+    app.kubernetes.io/name: LoadBalancerController
+  name: alb
+spec:
+  controller: eks.amazonaws.com/alb
+EOF

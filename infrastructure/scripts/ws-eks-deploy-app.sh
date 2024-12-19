@@ -85,17 +85,6 @@ spec:
     app: $APP_NAME
 EOF
 
-cat <<EOF > ~/environment/$APP_NAME/k8s/ingress-class.yaml
-apiVersion: networking.k8s.io/v1
-kind: IngressClass
-metadata:
-  labels:
-    app.kubernetes.io/name: LoadBalancerController
-  name: alb
-spec:
-  controller: eks.amazonaws.com/alb
-EOF
-
 cat <<EOF > ~/environment/$APP_NAME/k8s/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
