@@ -12,7 +12,7 @@ public class WorkshopApp {
     public static void main(final String[] args) {
         App app = new App();
 
-        var workshopStack = new WorkshopStack(app, "WorkshopStack");
+        var WorkshopEksStack = new WorkshopEksStack(app, "WorkshopEksStack");
 
         // Add CDK-NAG checks: https://github.com/cdklabs/cdk-nag
         // Add suppression to exclude certain findings that are not needed for Workshop environment
@@ -35,7 +35,7 @@ public class WorkshopApp {
             new NagPackSuppression.Builder().id("AwsSolutions-RDS10").reason("Workshop environment is ephemeral and the database should be deleted by the end of the workshop").build(),
             new NagPackSuppression.Builder().id("AwsSolutions-EKS1").reason("Workshop non-sensitive EKS cluster uses public access" ).build()
         );
-        NagSuppressions.addStackSuppressions(workshopStack, suppressionWorkshop);
+        NagSuppressions.addStackSuppressions(WorkshopEksStack, suppressionWorkshop);
 
         app.synth();
     }

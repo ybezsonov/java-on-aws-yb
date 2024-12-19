@@ -24,14 +24,17 @@ public class VSCodeIdeProps {
     private String codeServerVersion = "4.95.3";
     private List<IManagedPolicy> additionalIamPolicies = new ArrayList<>();
     private List<ISecurityGroup> additionalSecurityGroups = new ArrayList<>();
-    private int bootstrapTimeoutMinutes = 15;
+    private int bootstrapTimeoutMinutes = 30;
     private boolean enableGitea = false;
     private String splashUrl = "";
     private String readmeUrl = "";
     private String environmentContentsZip = "";
     private List<String> extensions = new ArrayList<>();
-    private boolean terminalOnStartup = false;
+    private boolean terminalOnStartup = true;
     private Role role;
+    private String additionalIamPolicyPath = "/iam-policy.json";
+    private boolean enableAppSecurityGroup = false;
+    private int appPort = 8080;
 
     public String getInstanceName() { return instanceName; }
     public void setInstanceName(String instanceName) { this.instanceName = instanceName; }
@@ -86,4 +89,13 @@ public class VSCodeIdeProps {
 
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+
+    public String getAdditionalIamPolicyPath() { return additionalIamPolicyPath; }
+    public void setAdditionalIamPolicyPath(String additionalIamPolicyPath) { this.additionalIamPolicyPath = additionalIamPolicyPath; }
+
+    public boolean isEnableAppSecurityGroup() { return enableAppSecurityGroup; }
+    public void setEnableAppSecurityGroup(boolean enableAppSecurityGroup) { this.enableAppSecurityGroup = enableAppSecurityGroup; }
+
+    public int getAppPort() { return appPort; }
+    public void setAppPort(int appPort) { this.appPort = appPort; }
 }

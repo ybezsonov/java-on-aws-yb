@@ -1,6 +1,6 @@
 set -e
 
-STACK_NAME="WorkshopStack"
+STACK_NAME="WorkshopEksStack"
 CLUSTER_NAME=unicorn-store
 
 check_stack() {
@@ -51,10 +51,5 @@ done
 
 while ! kubectl get ns; do
     echo "Failed to get namespaces. Retrying in 10 seconds..."
-    sleep 10
-done
-
-while ! kubectl get sa; do
-    echo "Failed to get service accounts. Retrying in 10 seconds..."
     sleep 10
 done

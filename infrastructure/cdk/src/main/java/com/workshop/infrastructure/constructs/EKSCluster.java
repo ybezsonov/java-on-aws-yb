@@ -8,7 +8,6 @@ import software.amazon.awscdk.services.eks.CfnCluster.LoggingTypeConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.AccessConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.ResourcesVpcConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.UpgradePolicyProperty;
-import software.amazon.awscdk.services.eks.CfnPodIdentityAssociation;
 import software.amazon.awscdk.services.eks.CfnCluster.ComputeConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.KubernetesNetworkConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.ElasticLoadBalancingProperty;
@@ -32,7 +31,9 @@ import java.util.List;
 
 public class EKSCluster extends Construct {
 
-    public EKSCluster(final Construct scope, final String id, final Vpc vpc, final SecurityGroup sg, final String accountId) {
+    private String version = "1.31";
+
+    public EKSCluster(final Construct scope, final String id, final Vpc vpc, final SecurityGroup additionalSG) {
         super(scope, id);
 
         // Add tags to subnets to enable Load Balancers
@@ -43,7 +44,7 @@ public class EKSCluster extends Construct {
             Tags.of(subnet).add("kubernetes.io/role/internal-elb", "1");
         }
 
-        // create Role for a cluster to allow resource management
+        // Create Role for a cluster to allow resource management
         var clusterRole = Role.Builder.create(this, "EKSClusterRole")
             .assumedBy(new ServicePrincipal("eks.amazonaws.com"))
             .managedPolicies(Arrays.asList(
@@ -88,8 +89,8 @@ public class EKSCluster extends Construct {
         );
 
         // Create EKS cluster
-        var eksCluster = CfnCluster.Builder.create(this, "EKSCluster")
-            .version("1.31")
+        CfnCluster.Builder.create(this, "EKSCluster")
+            .version(getVersion())
             .name(id)
             // Enable EKS Auto Mode
             .computeConfig(ComputeConfigProperty.builder()
@@ -116,7 +117,7 @@ public class EKSCluster extends Construct {
                     .build()).getSubnetIds())
                 .endpointPrivateAccess(true)
                 .endpointPublicAccess(true)
-                .securityGroupIds(List.of(sg.getSecurityGroupId()))
+                .securityGroupIds(List.of(additionalSG.getSecurityGroupId()))
                 .build())
             .roleArn(clusterRole.getRoleArn())
             .accessConfig(AccessConfigProperty.builder() // use API mode for cluster access
@@ -137,13 +138,13 @@ public class EKSCluster extends Construct {
                 .supportType("STANDARD")
                 .build())
             .build();
+    }
 
-        var podIdentityAssociation = CfnPodIdentityAssociation.Builder.create(this, "CfnPodIdentityAssociationDefault")
-            .clusterName(id)
-            .namespace("default")
-            .roleArn("arn:aws:iam::" + accountId + ":role/unicorn-store-eks-pod-role")
-            .serviceAccount("default")
-            .build();
-        podIdentityAssociation.getNode().addDependency(eksCluster);
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
     }
 }

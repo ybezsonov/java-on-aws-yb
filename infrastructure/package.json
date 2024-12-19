@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "generate-cfn": "cd ./cdk && mvn clean package && cdk synth && cdk synth WorkshopStack --yaml --path-metadata false --version-reporting false | sed 's/arn:aws:iam::{{.AccountId}}:/!Sub arn:aws:iam::${AWS::AccountId}:/g' > ../cfn/WorkshopStack.yaml"
+    "generate-eks-stack": "cd ./cdk && mvn clean package && cdk synth && cdk synth WorkshopEksStack --yaml --path-metadata false --version-reporting false | sed 's/arn:aws:iam::{{.AccountId}}:/!Sub arn:aws:iam::${AWS::AccountId}:/g' > ../cfn/WorkshopEksStack.yaml"
   },
   "author": "",
   "license": "ISC",

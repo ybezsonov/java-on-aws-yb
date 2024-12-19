@@ -1,9 +1,9 @@
-package com.workshop.infrastructure.constructs;
+package com.workshop.infrastructure.unicorn;
 
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.services.ec2.Vpc;
-// import software.amazon.awscdk.services.ec2.Peer;
-// import software.amazon.awscdk.services.ec2.Port;
+import software.amazon.awscdk.services.ec2.Port;
+import software.amazon.awscdk.services.ec2.Peer;
 import software.amazon.awscdk.services.ec2.SecurityGroup;
 import software.amazon.awscdk.services.ec2.SubnetSelection;
 import software.amazon.awscdk.services.ec2.SubnetType;
@@ -25,14 +25,14 @@ import software.amazon.awscdk.services.ssm.ParameterTier;
 import software.amazon.awscdk.services.ssm.StringParameter;
 
 import software.constructs.Construct;
-
 import java.util.List;
 
-public class UnicornStoreInfrastructure extends Construct {
+public class CoreInfrastructure extends Construct {
 
     private DatabaseSecret databaseSecret;
     private StringParameter paramJdbc;
     private EventBus eventBridge;
+    private Repository ecrRepository;
 
     public DatabaseSecret getDatabaseSecret() {
         return databaseSecret;
@@ -44,11 +44,15 @@ public class UnicornStoreInfrastructure extends Construct {
         return eventBridge;
     }
 
-    public UnicornStoreInfrastructure(final Construct scope, final String id, final Vpc vpc, final SecurityGroup sg) {
+    public Repository getEcrRepository() {
+        return ecrRepository;
+    }
+
+    public CoreInfrastructure(final Construct scope, final String id, Vpc vpc) {
         super(scope, id);
 
         databaseSecret = createDatabaseSecret();
-        var databaseUrl = createDatabase(vpc, databaseSecret, sg);
+        var databaseUrl = createDatabase(vpc, databaseSecret);
 
         paramJdbc = StringParameter.Builder.create(this, "SsmParameterDatabaseJDBCConnectionString")
             .allowedPattern(".*")
@@ -60,7 +64,7 @@ public class UnicornStoreInfrastructure extends Construct {
 
         eventBridge = createEventBus();
 
-        Repository.Builder.create(this, "UnicornStoreEcr")
+        ecrRepository = Repository.Builder.create(this, "UnicornStoreEcr")
             .repositoryName("unicorn-store-spring")
             .imageScanOnPush(false)
             .removalPolicy(RemovalPolicy.DESTROY)
@@ -163,8 +167,8 @@ public class UnicornStoreInfrastructure extends Construct {
             .username("postgres").build();
     }
 
-    private String createDatabase(Vpc vpc, DatabaseSecret databaseSecret, SecurityGroup sg) {
-        // var databaseSecurityGroup = createDatabaseSecurityGroup(vpc);
+    private String createDatabase(Vpc vpc, DatabaseSecret databaseSecret) {
+        var databaseSecurityGroup = createDatabaseSecurityGroup(vpc);
 
         var cluster = DatabaseCluster.Builder.create(this, "UnicornStoreDatabase")
             .engine(DatabaseClusterEngine.auroraPostgres(
@@ -180,35 +184,35 @@ public class UnicornStoreInfrastructure extends Construct {
             .vpcSubnets(SubnetSelection.builder()
                 .subnetType(SubnetType.PRIVATE_WITH_EGRESS)
                 .build())
-            .securityGroups(List.of(sg))
+            .securityGroups(List.of(databaseSecurityGroup))
             .credentials(Credentials.fromSecret(databaseSecret))
             .build();
 
             return cluster.getClusterEndpoint().getHostname();
         }
 
-    // private SecurityGroup createDatabaseSecurityGroup(Vpc vpc) {
-    //     var databaseSecurityGroup = SecurityGroup.Builder.create(this, "DatabaseSecurityGroup")
-    //         .securityGroupName("Database security Group")
-    //         .description("Database security Group")
-    //         .allowAllOutbound(false)
-    //         .vpc(vpc)
-    //         .build();
+        private SecurityGroup createDatabaseSecurityGroup(Vpc vpc) {
+            var databaseSecurityGroup = SecurityGroup.Builder.create(this, "DatabaseSecurityGroup")
+                .securityGroupName("Database security Group")
+                .description("Database security Group")
+                .allowAllOutbound(false)
+                .vpc(vpc)
+                .build();
 
-    //     databaseSecurityGroup.addEgressRule(
-    //         Peer.anyIpv4(),
-    //         Port.tcp(5432),
-    //         "Allow outbound PostgreSQL responses");
+            databaseSecurityGroup.addEgressRule(
+                Peer.anyIpv4(),
+                Port.tcp(5432),
+                "Allow outbound PostgreSQL responses");
 
-    //     databaseSecurityGroup.addIngressRule(
-    //         Peer.ipv4("10.0.0.0/16"),
-    //         Port.tcp(5432),
-    //         "Allow Database Traffic from VPC");
+            databaseSecurityGroup.addIngressRule(
+                Peer.ipv4("10.0.0.0/16"),
+                Port.tcp(5432),
+                "Allow Database Traffic from VPC");
 
-    //     return databaseSecurityGroup;
-    // }
+            return databaseSecurityGroup;
+        }
 
-    public String getDatabaseJDBCConnectionString(String databaseUrl){
+    private String getDatabaseJDBCConnectionString(String databaseUrl){
         return "jdbc-secretsmanager:postgresql://" + databaseUrl + ":5432/unicorns";
         // return "jdbc:postgresql://" + databaseUrl + ":5432/unicorns";
     }

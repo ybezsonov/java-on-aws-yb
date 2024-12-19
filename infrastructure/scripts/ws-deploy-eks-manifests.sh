@@ -1,6 +1,7 @@
 set -e
 
-APP_NAME=unicorn-store-spring
+APP_NAME=${1:-"unicorn-store-spring"}
+
 mkdir -p ~/environment/${APP_NAME}/k8s
 cd ~/environment/${APP_NAME}/k8s
 
@@ -124,7 +125,7 @@ cat <<EOF > ~/environment/$APP_NAME/k8s/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  namespace: $APP_NAME
+  # namespace: $APP_NAME
   name: $APP_NAME
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing

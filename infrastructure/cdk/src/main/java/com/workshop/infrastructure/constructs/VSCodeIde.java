@@ -28,6 +28,7 @@ import software.amazon.awscdk.services.ec2.SubnetType;
 import software.amazon.awscdk.services.iam.IManagedPolicy;
 import software.amazon.awscdk.services.iam.InstanceProfile;
 import software.amazon.awscdk.services.iam.ManagedPolicy;
+import software.amazon.awscdk.services.iam.PolicyDocument;
 import software.amazon.awscdk.services.iam.PolicyStatement;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
@@ -42,6 +43,8 @@ import software.amazon.awscdk.services.ssm.CfnDocument;
 import software.amazon.awscdk.CfnOutput;
 
 import software.constructs.Construct;
+
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -65,11 +68,31 @@ public class VSCodeIde extends Construct {
             props.setVpc(new WorkshopVpc(this, "WorkshopVpc").getVpc());
         }
 
+        if (props.getAvailabilityZone() == null) {
+            props.setAvailabilityZone(props.getVpc().getAvailabilityZones().get(0));
+        }
+
         // Set up IAM role
         if (props.getRole() == null) {
-            props.setRole(Role.Builder.create(this, "IdeRole")
-                .assumedBy(ServicePrincipal.Builder.create("ec2.amazonaws.com").build())
-                .build());
+            var ideRole = Role.Builder.create(this, "IdeRole")
+                .assumedBy(new ServicePrincipal("ec2.amazonaws.com"))
+                .roleName("workshop-ide-user")
+                .build();
+            props.setRole(ideRole);
+        }
+
+        // props.getRole().addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"));
+        props.getRole().addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName("ReadOnlyAccess"));
+        props.getRole().addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore"));
+
+        var filePath = props.getAdditionalIamPolicyPath();
+        if (Files.exists(Path.of(getClass().getResource(filePath).getPath()))) {
+            var policyDocumentJson = loadFile(filePath);
+            var policyDocument = PolicyDocument.fromJson(new JSONObject(policyDocumentJson).toMap());
+            var policy = ManagedPolicy.Builder.create(this, "WorkshopIdeUserPolicy")
+                .document(policyDocument)
+                .build();
+                props.getRole().addManagedPolicy(policy);
         }
 
         // Set up logging
@@ -78,8 +101,102 @@ public class VSCodeIde extends Construct {
             .build();
         logGroup.grantWrite(props.getRole());
 
-        // Set up EC instance
-        var ideInstance = createEc2Instance(props);
+        // Create prefix List of CloudFront IP for EC2 instance segurity Group
+        Function prefixListFunction = Function.Builder.create(this, "IdePrefixListFunction")
+            .code(Code.fromInline(loadFile("/prefix-lambda.py")))
+            .handler("index.lambda_handler")
+            .runtime(Runtime.PYTHON_3_13)
+            .timeout(Duration.minutes(3))
+            .build();
+
+        prefixListFunction.addToRolePolicy(PolicyStatement.Builder.create()
+            .resources(List.of("*"))
+            .actions(List.of("ec2:DescribeManagedPrefixLists"))
+            .build());
+
+        var prefixListResource = CustomResource.Builder.create(this, "IdePrefixListResource")
+            .serviceToken(prefixListFunction.getFunctionArn())
+            .build();
+
+        // Add managed policies
+        List<IManagedPolicy> policies = new ArrayList<>();
+        policies.addAll(props.getAdditionalIamPolicies());
+        policies.forEach(policy -> props.getRole().addManagedPolicy(policy));
+
+        // Create security group for IDE access
+        SecurityGroup ideSecurityGroup = SecurityGroup.Builder.create(this, "IdeSecurityGroup")
+            .vpc(props.getVpc())
+            .allowAllOutbound(true)
+            .securityGroupName("IDE security group")
+            .description("IDE security group")
+            .build();
+
+        ideSecurityGroup.addIngressRule(
+            Peer.prefixList(prefixListResource.getAttString("PrefixListId")),
+            Port.tcp(80),
+            "HTTP from CloudFront only"
+        );
+
+        if (props.isEnableGitea()) {
+            ideSecurityGroup.addIngressRule(
+                Peer.ipv4(props.getVpc().getVpcCidrBlock()),
+                Port.tcp(9999),
+                "Gitea API from VPC"
+            );
+            ideSecurityGroup.addIngressRule(
+                Peer.ipv4(props.getVpc().getVpcCidrBlock()),
+                Port.tcp(2222),
+                "Gitea SSH from VPC"
+            );
+        }
+
+        var instanceProfile = InstanceProfile.Builder.create(this, "IdeInstanceProfile")
+            .role(props.getRole())
+            .instanceProfileName(props.getRole().getRoleName())
+            .build();
+
+        // Create EC2 instance
+        var ec2Instance = Instance.Builder.create(this, "IdeEC2Instance")
+            .instanceName(props.getInstanceName())
+            .vpc(props.getVpc())
+            .machineImage(props.getMachineImage())
+            .instanceType(props.getInstanceType())
+            // .role(props.getRole())
+            .instanceProfile(instanceProfile)
+            .securityGroup(ideSecurityGroup)
+            .vpcSubnets(SubnetSelection.builder()
+                .subnetType(SubnetType.PUBLIC)
+                .build())
+            .blockDevices(List.of(BlockDevice.builder()
+                .deviceName("/dev/xvda")
+                .volume(BlockDeviceVolume.ebs(props.getDiskSize(), EbsDeviceOptions.builder()
+                    .volumeType(EbsDeviceVolumeType.GP3)
+                    .deleteOnTermination(true)
+                    .encrypted(true)
+                    .build()))
+                .build()))
+            .build();
+        ec2Instance.getNode().addDependency(props.getVpc());
+
+        if (props.isEnableAppSecurityGroup()) {
+            // Create security group
+            SecurityGroup appSecurityGroup = SecurityGroup.Builder.create(this, "AppSecurityGroup")
+                .vpc(props.getVpc())
+                .allowAllOutbound(true)
+                .securityGroupName("App security group")
+                .description("App security group")
+                .build();
+
+            appSecurityGroup.addIngressRule(
+                Peer.prefixList(prefixListResource.getAttString("PrefixListId")),
+                Port.tcp(props.getAppPort()),
+                "Port " + props.getAppPort() +  " to App from CloudFront only"
+            );
+            ec2Instance.addSecurityGroup(appSecurityGroup);
+        }
+
+        // Add additional security groups if any
+        props.getAdditionalSecurityGroups().forEach(sg -> ec2Instance.addSecurityGroup(sg));
 
         // Set up wait condition
         var waitHandle = CfnWaitConditionHandle.Builder.create(this, "IdeBootstrapWaitConditionHandle")
@@ -90,10 +207,42 @@ public class VSCodeIde extends Construct {
             .handle(waitHandle.getRef())
             .timeout(String.valueOf(props.getBootstrapTimeoutMinutes() * 60))
             .build();
-        waitCondition.getNode().addDependency(ideInstance);
+        waitCondition.getNode().addDependency(ec2Instance);
 
-        // Setup CloudFront distribution
-        createDistribution(ideInstance);
+        // Create CloudFront distribution
+        var distribution = Distribution.Builder.create(this, "IdeDistribution")
+            .defaultBehavior(BehaviorOptions.builder()
+                .origin(new HttpOrigin(ec2Instance.getInstancePublicDnsName(),
+                    HttpOriginProps.builder()
+                        .protocolPolicy(OriginProtocolPolicy.HTTP_ONLY)
+                        .httpPort(80)
+                        .build()))
+                .allowedMethods(AllowedMethods.ALLOW_ALL)
+                .cachePolicy(CachePolicy.CACHING_DISABLED)
+                .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER)
+                .viewerProtocolPolicy(ViewerProtocolPolicy.ALLOW_ALL)
+                .build())
+            .httpVersion(HttpVersion.HTTP2)
+            .build();
+        if (props.isEnableAppSecurityGroup()) {
+            distribution.addBehavior("/app/*", new HttpOrigin(ec2Instance.getInstancePublicDnsName(),
+                HttpOriginProps.builder()
+                    .protocolPolicy(OriginProtocolPolicy.HTTP_ONLY)
+                    .httpPort(props.getAppPort())
+                    .build()),
+                BehaviorOptions.builder()
+                    .allowedMethods(AllowedMethods.ALLOW_ALL)
+                    .cachePolicy(CachePolicy.CACHING_DISABLED)
+                    .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER)
+                    .viewerProtocolPolicy(ViewerProtocolPolicy.ALLOW_ALL)
+                    .build());
+        }
+
+        var outputIdeUrl = CfnOutput.Builder.create(this, "IdeUrl")
+            .value("https://" + distribution.getDistributionDomainName())
+            .description("Workshop IDE Url")
+            .build();
+        outputIdeUrl.getNode().addDependency(distribution);
 
         // Create password secret
         ideSecretsManagerPassword = Secret.Builder.create(this, "IdePasswordSecret")
@@ -106,14 +255,14 @@ public class VSCodeIde extends Construct {
                 .excludeCharacters("\"@/\\\\")
                 .build())
             .build();
-        ideInstance.getNode().addDependency(ideSecretsManagerPassword);
+        ec2Instance.getNode().addDependency(ideSecretsManagerPassword);
 
         ideSecretsManagerPassword.grantRead(props.getRole());
-        var output = CfnOutput.Builder.create(this, "IdePassword")
+        var outputIdePassword = CfnOutput.Builder.create(this, "IdePassword")
             .value(getIdePassword())
             .description("Workshop IDE Password")
             .build();
-        output.getNode().addDependency(ideSecretsManagerPassword);
+        outputIdePassword.getNode().addDependency(ideSecretsManagerPassword);
 
         // Create SSM document
         Map<String, Object> parameters = new HashMap<>();
@@ -190,147 +339,11 @@ public class VSCodeIde extends Construct {
         CustomResource.Builder.create(this, "IdeBootstrapResource")
             .serviceToken(bootstrapFunction.getFunctionArn())
             .properties(Map.of(
-                "InstanceId", ideInstance.getInstanceId(),
+                "InstanceId", ec2Instance.getInstanceId(),
                 "SsmDocument", ssmDocument.getRef(),
                 "LogGroupName", logGroup.getLogGroupName()
             ))
             .build();
-    }
-
-    private Instance createEc2Instance(final VSCodeIdeProps props) {
-        // Create prefix list function and resource
-        Function prefixListFunction = Function.Builder.create(this, "IdePrefixListFunction")
-            .code(Code.fromInline(loadFile("/prefix-lambda.py")))
-            .handler("index.lambda_handler")
-            .runtime(Runtime.PYTHON_3_13)
-            .timeout(Duration.minutes(3))
-            .build();
-
-        prefixListFunction.addToRolePolicy(PolicyStatement.Builder.create()
-            .resources(List.of("*"))
-            .actions(List.of("ec2:DescribeManagedPrefixLists"))
-            .build());
-
-        var prefixListResource = CustomResource.Builder.create(this, "IdePrefixListResource")
-            .serviceToken(prefixListFunction.getFunctionArn())
-            .build();
-
-        // Add managed policies
-        List<IManagedPolicy> policies = new ArrayList<>();
-        policies.add(ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore"));
-        policies.addAll(props.getAdditionalIamPolicies());
-        policies.forEach(policy -> props.getRole().addManagedPolicy(policy));
-
-        // Create security group for IDE access
-        SecurityGroup ideSecurityGroup = SecurityGroup.Builder.create(this, "IdeSecurityGroup")
-            .vpc(props.getVpc())
-            .allowAllOutbound(true)
-            .securityGroupName("IDE security group")
-            .description("IDE security group")
-            .build();
-
-        ideSecurityGroup.addIngressRule(
-            Peer.prefixList(prefixListResource.getAttString("PrefixListId")),
-            Port.tcp(80),
-            "HTTP from CloudFront only"
-        );
-
-        if (props.isEnableGitea()) {
-            ideSecurityGroup.addIngressRule(
-                Peer.ipv4(props.getVpc().getVpcCidrBlock()),
-                Port.tcp(9999),
-                "Gitea API from VPC"
-            );
-            ideSecurityGroup.addIngressRule(
-                Peer.ipv4(props.getVpc().getVpcCidrBlock()),
-                Port.tcp(2222),
-                "Gitea SSH from VPC"
-            );
-        }
-
-        // Create security group
-        SecurityGroup appSecurityGroup = SecurityGroup.Builder.create(this, "AppSecurityGroup")
-            .vpc(props.getVpc())
-            .allowAllOutbound(true)
-            .securityGroupName("App security group")
-            .description("App security group")
-            .build();
-
-        appSecurityGroup.addIngressRule(
-            Peer.prefixList(prefixListResource.getAttString("PrefixListId")),
-            Port.tcp(8080),
-            "8080 to App from CloudFront only"
-        );
-
-        var instanceProfile = InstanceProfile.Builder.create(this, "IdeInstanceProfile")
-            .role(props.getRole())
-            .instanceProfileName(props.getRole().getRoleName())
-            .build();
-
-        // Create EC2 instance
-        var ec2Instance = Instance.Builder.create(this, "IdeEC2Instance")
-            .instanceName(props.getInstanceName())
-            .vpc(props.getVpc())
-            .machineImage(props.getMachineImage())
-            .instanceType(props.getInstanceType())
-            // .role(props.getRole())
-            .instanceProfile(instanceProfile)
-            .securityGroup(ideSecurityGroup)
-            .vpcSubnets(SubnetSelection.builder()
-                .subnetType(SubnetType.PUBLIC)
-                .build())
-            .blockDevices(List.of(BlockDevice.builder()
-                .deviceName("/dev/xvda")
-                .volume(BlockDeviceVolume.ebs(props.getDiskSize(), EbsDeviceOptions.builder()
-                    .volumeType(EbsDeviceVolumeType.GP3)
-                    .deleteOnTermination(true)
-                    .encrypted(true)
-                    .build()))
-                .build()))
-            .build();
-        ec2Instance.getNode().addDependency(props.getVpc());
-
-        ec2Instance.addSecurityGroup(appSecurityGroup);
-        // Add additional security groups if any
-        props.getAdditionalSecurityGroups().forEach(sg -> ec2Instance.addSecurityGroup(sg));
-
-        return ec2Instance;
-    }
-
-    private Distribution createDistribution(final Instance ec2Instance) {
-        // Create CloudFront distribution
-        var distribution = Distribution.Builder.create(this, "IdeDistribution")
-            .defaultBehavior(BehaviorOptions.builder()
-                .origin(new HttpOrigin(ec2Instance.getInstancePublicDnsName(),
-                    HttpOriginProps.builder()
-                        .protocolPolicy(OriginProtocolPolicy.HTTP_ONLY)
-                        .httpPort(80)
-                        .build()))
-                .allowedMethods(AllowedMethods.ALLOW_ALL)
-                .cachePolicy(CachePolicy.CACHING_DISABLED)
-                .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER)
-                .viewerProtocolPolicy(ViewerProtocolPolicy.ALLOW_ALL)
-                .build())
-            .additionalBehaviors(Map.of(
-                "/app/*", BehaviorOptions.builder()
-                    .origin(new HttpOrigin(ec2Instance.getInstancePublicDnsName(),
-                        HttpOriginProps.builder()
-                            .protocolPolicy(OriginProtocolPolicy.HTTP_ONLY)
-                            .httpPort(8080)
-                            .build()))
-                    .allowedMethods(AllowedMethods.ALLOW_ALL)
-                    .cachePolicy(CachePolicy.CACHING_DISABLED)
-                    .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER)
-                    .viewerProtocolPolicy(ViewerProtocolPolicy.ALLOW_ALL)
-                    .build()))
-            .httpVersion(HttpVersion.HTTP2)
-            .build();
-        var output = CfnOutput.Builder.create(this, "IdeUrl")
-            .value("https://" + distribution.getDistributionDomainName())
-            .description("Workshop IDE Url")
-            .build();
-        output.getNode().addDependency(distribution);
-        return distribution;
     }
 
     private String getIdePassword() {
