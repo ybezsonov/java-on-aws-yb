@@ -5,24 +5,6 @@ APP_NAME=${1:-"unicorn-store-spring"}
 mkdir -p ~/environment/${APP_NAME}/k8s
 cd ~/environment/${APP_NAME}/k8s
 
-# echo Create manifests for the application
-# cat <<EOF > ~/environment/${APP_NAME}/k8s/namespace.yaml
-# apiVersion: v1
-# kind: Namespace
-# metadata:
-#   name: ${APP_NAME}
-# EOF
-
-# cat <<EOF > ~/environment/${APP_NAME}/k8s/service-account.yaml
-# apiVersion: v1
-# kind: ServiceAccount
-# metadata:
-#   name: ${APP_NAME}
-#   namespace: ${APP_NAME}
-#   annotations:
-#     eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT_ID}:role/unicorn-store-eks-pod-role
-# EOF
-
 ECR_URI=$(aws ecr describe-repositories --repository-names $APP_NAME \
   | jq --raw-output '.repositories[0].repositoryUri')
 SPRING_DATASOURCE_URL=$(aws ssm get-parameter --name databaseJDBCConnectionString \
@@ -33,7 +15,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: $APP_NAME
-  # namespace: $APP_NAME
   labels:
     app: $APP_NAME
 spec:
@@ -87,16 +68,11 @@ spec:
             allowPrivilegeEscalation: false
 EOF
 
-# aws eks create-pod-identity-association --cluster-name $CLUSTER_NAME \
-#   --namespace $APP_NAME --service-account $APP_NAME \
-#   --role-arn arn:aws:iam::$ACCOUNT_ID:role/unicorn-store-eks-pod-role
-
 cat <<EOF > ~/environment/$APP_NAME/k8s/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: $APP_NAME
-  # namespace: $APP_NAME
   labels:
     app: $APP_NAME
 spec:
@@ -113,7 +89,6 @@ cat <<EOF > ~/environment/$APP_NAME/k8s/ingress-class.yaml
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
 metadata:
-  # namespace: $APP_NAME
   labels:
     app.kubernetes.io/name: LoadBalancerController
   name: alb
@@ -125,7 +100,6 @@ cat <<EOF > ~/environment/$APP_NAME/k8s/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  # namespace: $APP_NAME
   name: $APP_NAME
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
@@ -143,9 +117,6 @@ spec:
                 port:
                   number: 80
 EOF
-
-git -C ~/environment/$APP_NAME add .
-git -C ~/environment/$APP_NAME commit -m "add k8s manifests"
 
 echo Deploy the manifest to the EKS cluster
 kubectl apply -f ~/environment/$APP_NAME/k8s/

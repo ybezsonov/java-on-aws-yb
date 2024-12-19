@@ -91,6 +91,7 @@ curl -sS -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.31.0/2024-09-12/bin/
 chmod +x ./kubectl
 mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
 echo "export PATH=$PATH:$HOME/bin" | sudo tee -a /etc/profile.d/workshop.sh
+echo "alias k=kubectl" | sudo tee -a /etc/profile.d/workshop.sh
 kubectl version --client --output=yaml
 
 echo "Installing eks-node-viewer ..."
