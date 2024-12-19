@@ -2,6 +2,8 @@ set -e
 
 APP_NAME=${1:-"unicorn-store-spring"}
 
+echo Creating manifests for $APP_NAME ...
+
 mkdir -p ~/environment/${APP_NAME}/k8s
 cd ~/environment/${APP_NAME}/k8s
 
@@ -107,10 +109,10 @@ spec:
                   number: 80
 EOF
 
-echo Deploy the manifest to the EKS cluster
+echo Deploying the manifest to the EKS cluster
 kubectl apply -f ~/environment/$APP_NAME/k8s/
 
-echo Verify that the application is running properly
+echo Verifying that the application is running properly
 kubectl wait deployment $APP_NAME --for condition=Available=True --timeout=120s
 kubectl get deploy
 SVC_URL=http://$(kubectl get ingress $APP_NAME -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
