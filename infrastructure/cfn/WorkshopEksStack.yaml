@@ -834,9 +834,9 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
+            default: ""
             description: (Optional) Custom bootstrap script to run.
             type: String
-            default: ""
         mainSteps:
           - inputs:
               runCommand:
@@ -1082,7 +1082,15 @@ Resources:
                       /opt/aws/bin/cfn-signal -e $exit_code '${waitConditionHandleUrl}'
 
                       exit $exit_code
-                    - extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                    - splashUrl: ""
+                      instanceIamRoleArn:
+                        Fn::GetAtt:
+                          - IdeRoleE8AB7A1E
+                          - Arn
+                      readmeUrl: ""
+                      waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
+                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
                       domain: ""
                       installGitea: echo bootstrapGitea was not provided
                       terminalOnStartup: "true"
@@ -1120,21 +1128,13 @@ Resources:
 
                         echo '=== Setup App ==='
                         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
                         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-kubeconfig.sh"
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
                         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-deploy-app.sh"
                         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-cleanup-app.sh"
                       codeServerVersion: 4.96.1
                       instanceIamRoleName:
                         Ref: IdeRoleE8AB7A1E
-                      splashUrl: ""
-                      instanceIamRoleArn:
-                        Fn::GetAtt:
-                          - IdeRoleE8AB7A1E
-                          - Arn
-                      readmeUrl: ""
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -1270,12 +1270,12 @@ Resources:
         Fn::GetAtt:
           - VSCodeIdeIdeBootstrapFunctionADFBCE22
           - Arn
-      LogGroupName:
-        Ref: VSCodeIdeIdeLogGroup364F2B78
       SsmDocument:
         Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
       InstanceId:
         Ref: VSCodeIdeIdeEC2Instance846AE373
+      LogGroupName:
+        Ref: VSCodeIdeIdeLogGroup364F2B78
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   WorkshopEksStackpostgres52CD6289:

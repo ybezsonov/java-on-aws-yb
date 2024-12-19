@@ -36,8 +36,8 @@ public class WorkshopEksStack extends Stack {
 
         echo '=== Setup App ==='
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
-        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-kubeconfig.sh"
+        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-deploy-app.sh"
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-cleanup-app.sh"
         """;
