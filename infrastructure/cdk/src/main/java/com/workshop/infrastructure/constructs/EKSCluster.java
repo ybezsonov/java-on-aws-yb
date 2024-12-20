@@ -13,6 +13,8 @@ import software.amazon.awscdk.services.eks.CfnCluster.KubernetesNetworkConfigPro
 import software.amazon.awscdk.services.eks.CfnCluster.ElasticLoadBalancingProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.StorageConfigProperty;
 import software.amazon.awscdk.services.eks.CfnCluster.BlockStorageProperty;
+import software.amazon.awscdk.services.eks.OpenIdConnectProvider;
+import software.amazon.awscdk.ResolutionTypeHint;
 import software.amazon.awscdk.services.ec2.SubnetType;
 import software.amazon.awscdk.services.ec2.SubnetSelection;
 import software.amazon.awscdk.services.ec2.ISubnet;
@@ -32,6 +34,7 @@ import java.util.List;
 public class EKSCluster extends Construct {
 
     private String version = "1.31";
+    private OpenIdConnectProvider provider;
 
     public EKSCluster(final Construct scope, final String id, final Vpc vpc, final SecurityGroup additionalSG) {
         super(scope, id);
@@ -89,7 +92,7 @@ public class EKSCluster extends Construct {
         );
 
         // Create EKS cluster
-        CfnCluster.Builder.create(this, "EKSCluster")
+        var eksCluster = CfnCluster.Builder.create(this, "EKSCluster")
             .version(getVersion())
             .name(id)
             // Enable EKS Auto Mode
@@ -138,6 +141,16 @@ public class EKSCluster extends Construct {
                 .supportType("STANDARD")
                 .build())
             .build();
+
+        String issuerUrl = eksCluster.getAtt("OpenIdConnectIssuerUrl", ResolutionTypeHint.STRING).toString();
+        provider = OpenIdConnectProvider.Builder.create(this, "EkdClusterProvider")
+             .url(issuerUrl)
+             .build();
+        provider.getNode().addDependency(eksCluster);
+    }
+
+    public OpenIdConnectProvider getProvider() {
+        return provider;
     }
 
     public String getVersion() {

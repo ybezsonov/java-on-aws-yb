@@ -5,6 +5,8 @@ import software.amazon.awscdk.CfnWaitConditionHandle;
 import software.amazon.awscdk.CustomResource;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.Fn;
+import software.amazon.awscdk.RemovalPolicy;
+import software.amazon.awscdk.services.cloudfront.AddBehaviorOptions;
 import software.amazon.awscdk.services.cloudfront.AllowedMethods;
 import software.amazon.awscdk.services.cloudfront.BehaviorOptions;
 import software.amazon.awscdk.services.cloudfront.CachePolicy;
@@ -225,18 +227,22 @@ public class VSCodeIde extends Construct {
             .httpVersion(HttpVersion.HTTP2)
             .build();
         if (props.isEnableAppSecurityGroup()) {
-            distribution.addBehavior("/app/*", new HttpOrigin(ec2Instance.getInstancePublicDnsName(),
-                HttpOriginProps.builder()
-                    .protocolPolicy(OriginProtocolPolicy.HTTP_ONLY)
-                    .httpPort(props.getAppPort())
-                    .build()),
-                BehaviorOptions.builder()
+            distribution.addBehavior(
+                "/app/*",
+                new HttpOrigin(ec2Instance.getInstancePublicDnsName(),
+                    HttpOriginProps.builder()
+                        .protocolPolicy(OriginProtocolPolicy.HTTP_ONLY)
+                        .httpPort(props.getAppPort())
+                        .build()),
+                AddBehaviorOptions.builder()
                     .allowedMethods(AllowedMethods.ALLOW_ALL)
                     .cachePolicy(CachePolicy.CACHING_DISABLED)
                     .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER)
                     .viewerProtocolPolicy(ViewerProtocolPolicy.ALLOW_ALL)
-                    .build());
+                    .build()
+            );
         }
+        distribution.applyRemovalPolicy(RemovalPolicy.DESTROY);
 
         var outputIdeUrl = CfnOutput.Builder.create(this, "IdeUrl")
             .value("https://" + distribution.getDistributionDomainName())

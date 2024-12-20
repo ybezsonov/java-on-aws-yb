@@ -10,6 +10,7 @@ import software.amazon.awscdk.services.ec2.SubnetType;
 import software.amazon.awscdk.services.ecr.Repository;
 import software.amazon.awscdk.services.events.EventBus;
 import software.amazon.awscdk.services.iam.Role;
+import software.amazon.awscdk.services.iam.ArnPrincipal;
 import software.amazon.awscdk.services.iam.Effect;
 import software.amazon.awscdk.services.iam.ManagedPolicy;
 import software.amazon.awscdk.services.iam.PolicyStatement;
@@ -43,7 +44,6 @@ public class CoreInfrastructure extends Construct {
     public EventBus getEventBridge() {
         return eventBridge;
     }
-
     public Repository getEcrRepository() {
         return ecrRepository;
     }
@@ -52,17 +52,21 @@ public class CoreInfrastructure extends Construct {
         super(scope, id);
 
         databaseSecret = createDatabaseSecret();
-        var databaseUrl = createDatabase(vpc, databaseSecret);
+        var database = createDatabase(vpc, databaseSecret);
+        var databaseUrl = database.getClusterEndpoint().getHostname();
 
         paramJdbc = StringParameter.Builder.create(this, "SsmParameterDatabaseJDBCConnectionString")
             .allowedPattern(".*")
             .description("databaseJDBCConnectionString")
             .parameterName("databaseJDBCConnectionString")
-            .stringValue(getDatabaseJDBCConnectionString(databaseUrl))
+            .stringValue("jdbc:postgresql://" + databaseUrl + ":5432/unicorns")
             .tier(ParameterTier.STANDARD)
             .build();
+        paramJdbc.getNode().addDependency(database);
 
-        eventBridge = createEventBus();
+        eventBridge = EventBus.Builder.create(this, "UnicornEventBus")
+            .eventBusName("unicorns")
+            .build();
 
         ecrRepository = Repository.Builder.create(this, "UnicornStoreEcr")
             .repositoryName("unicorn-store-spring")
@@ -73,7 +77,7 @@ public class CoreInfrastructure extends Construct {
 
         // Roles - AppRunner
         var unicornStoreApprunnerRole = Role.Builder.create(this, "UnicornStoreApprunnerRole")
-            .roleName("unicorn-store-apprunner-role")
+            .roleName("unicornstore-apprunner-role")
             .assumedBy(new ServicePrincipal("tasks.apprunner.amazonaws.com")).build();
         unicornStoreApprunnerRole.addToPolicy(PolicyStatement.Builder.create()
             .actions(List.of("xray:PutTraceSegments"))
@@ -84,7 +88,7 @@ public class CoreInfrastructure extends Construct {
         paramJdbc.grantRead(unicornStoreApprunnerRole);
 
         var appRunnerECRAccessRole = Role.Builder.create(this, "UnicornStoreApprunnerEcrAccessRole")
-            .roleName("unicorn-store-apprunner-ecr-access-role")
+            .roleName("unicornstore-apprunner-ecr-access-role")
             .assumedBy(new ServicePrincipal("build.apprunner.amazonaws.com")).build();
         appRunnerECRAccessRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this,
             "UnicornStoreApprunnerEcrAccessRole-" + "AWSAppRunnerServicePolicyForECRAccess",
@@ -102,7 +106,7 @@ public class CoreInfrastructure extends Construct {
             .resources(List.of("*")).build();
 
         var unicornStoreEscTaskRole = Role.Builder.create(this, "UnicornStoreEcsTaskRole")
-            .roleName("unicorn-store-ecs-task-role")
+            .roleName("unicornstore-ecs-task-role")
             .assumedBy(new ServicePrincipal("ecs-tasks.amazonaws.com")).build();
         unicornStoreEscTaskRole.addToPolicy(PolicyStatement.Builder.create()
             .actions(List.of("xray:PutTraceSegments"))
@@ -121,7 +125,7 @@ public class CoreInfrastructure extends Construct {
         paramJdbc.grantRead(unicornStoreEscTaskRole);
 
         Role unicornStoreEscTaskExecutionRole = Role.Builder.create(this, "UnicornStoreEcsTaskExecutionRole")
-            .roleName("unicorn-store-ecs-task-execution-role")
+            .roleName("unicornstore-ecs-task-execution-role")
             .assumedBy(new ServicePrincipal("ecs-tasks.amazonaws.com")).build();
         unicornStoreEscTaskExecutionRole.addToPolicy(PolicyStatement.Builder.create()
             .actions(List.of("logs:CreateLogGroup"))
@@ -142,9 +146,44 @@ public class CoreInfrastructure extends Construct {
         paramJdbc.grantRead(unicornStoreEscTaskExecutionRole);
 
         // Roles - EKS
-        var eksPods = new ServicePrincipal("pods.eks.amazonaws.com");
+        var dbSecretPolicy = ManagedPolicy.Builder.create(this, "UnicornStoreDbSecretsManagerPolicy")
+            .managedPolicyName("unicornstore-db-secret-policy")
+            .statements(List.of(
+                PolicyStatement.Builder.create()
+                    .effect(Effect.ALLOW)
+                    .actions(List.of("secretsmanager:ListSecrets"))
+                    .resources(List.of("*"))
+                    .build(),
+                PolicyStatement.Builder.create()
+                    .effect(Effect.ALLOW)
+                    .actions(List.of(
+                            "secretsmanager:GetResourcePolicy",
+                            "secretsmanager:DescribeSecret",
+                            "secretsmanager:GetSecretValue",
+                            "secretsmanager:ListSecretVersionIds"
+                    ))
+                    .resources(List.of(databaseSecret.getSecretFullArn()))
+                    .build()
+            ))
+            .build();
+
+        ServicePrincipal eksPods = new ServicePrincipal("pods.eks.amazonaws.com");
+        // External Secrets Operator roles
+        Role unicornStoreEksEsoRole = Role.Builder.create(this, "unicornstore-eks-eso-role")
+            .roleName("unicornstore-eks-eso-role")
+            .assumedBy(eksPods.withSessionTags())
+            .build();
+        ArnPrincipal unicornStoreEksEsoRolePrincipal = new ArnPrincipal(unicornStoreEksEsoRole.getRoleArn());
+
+        Role unicornStoreEksEsoSmRole = Role.Builder.create(this, "unicornstore-eks-eso-sm-role")
+            .roleName("unicornstore-eks-eso-sm-role")
+            .assumedBy(unicornStoreEksEsoRolePrincipal.withSessionTags())
+            .build();
+        unicornStoreEksEsoSmRole.addManagedPolicy(dbSecretPolicy);
+
+        // EKS Pod Identity role
         var unicornStoreEksPodRole = Role.Builder.create(this, "UnicornStoreEksPodRole")
-            .roleName("unicorn-store-eks-pod-role")
+            .roleName("unicornstore-eks-pod-role")
             .assumedBy(eksPods.withSessionTags())
             .build();
         unicornStoreEksPodRole.addToPolicy(PolicyStatement.Builder.create()
@@ -163,14 +202,29 @@ public class CoreInfrastructure extends Construct {
     private DatabaseSecret createDatabaseSecret() {
         return DatabaseSecret.Builder
             .create(this, "postgres")
-            .secretName("unicorn-store-db-secret")
+            .secretName("unicornstore-db-secret")
             .username("postgres").build();
     }
 
-    private String createDatabase(Vpc vpc, DatabaseSecret databaseSecret) {
-        var databaseSecurityGroup = createDatabaseSecurityGroup(vpc);
+    private DatabaseCluster createDatabase(Vpc vpc, DatabaseSecret databaseSecret) {
+        var databaseSecurityGroup = SecurityGroup.Builder.create(this, "DatabaseSecurityGroup")
+            .securityGroupName("Database security Group")
+            .description("Database security Group")
+            .allowAllOutbound(false)
+            .vpc(vpc)
+            .build();
 
-        var cluster = DatabaseCluster.Builder.create(this, "UnicornStoreDatabase")
+        databaseSecurityGroup.addEgressRule(
+            Peer.anyIpv4(),
+            Port.tcp(5432),
+            "Allow outbound PostgreSQL responses");
+
+        databaseSecurityGroup.addIngressRule(
+            Peer.ipv4("10.0.0.0/16"),
+            Port.tcp(5432),
+            "Allow Database Traffic from VPC");
+
+        var dbCluster = DatabaseCluster.Builder.create(this, "UnicornStoreDatabase")
             .engine(DatabaseClusterEngine.auroraPostgres(
                 AuroraPostgresClusterEngineProps.builder().version(AuroraPostgresEngineVersion.VER_16_4).build()))
             .serverlessV2MinCapacity(0.5)
@@ -178,8 +232,8 @@ public class CoreInfrastructure extends Construct {
             .writer(ClusterInstance.serverlessV2("writer"))
             .enableDataApi(true)
             .defaultDatabaseName("unicorns")
-            .clusterIdentifier("unicorn-store-database")
-            .instanceIdentifierBase("unicorn-store-database-instance")
+            .clusterIdentifier("UnicornStoreDatabaseCluster")
+            .instanceIdentifierBase("UnicornStoreDatabaseInstance")
             .vpc(vpc)
             .vpcSubnets(SubnetSelection.builder()
                 .subnetType(SubnetType.PRIVATE_WITH_EGRESS)
@@ -188,38 +242,6 @@ public class CoreInfrastructure extends Construct {
             .credentials(Credentials.fromSecret(databaseSecret))
             .build();
 
-            return cluster.getClusterEndpoint().getHostname();
-        }
-
-        private SecurityGroup createDatabaseSecurityGroup(Vpc vpc) {
-            var databaseSecurityGroup = SecurityGroup.Builder.create(this, "DatabaseSecurityGroup")
-                .securityGroupName("Database security Group")
-                .description("Database security Group")
-                .allowAllOutbound(false)
-                .vpc(vpc)
-                .build();
-
-            databaseSecurityGroup.addEgressRule(
-                Peer.anyIpv4(),
-                Port.tcp(5432),
-                "Allow outbound PostgreSQL responses");
-
-            databaseSecurityGroup.addIngressRule(
-                Peer.ipv4("10.0.0.0/16"),
-                Port.tcp(5432),
-                "Allow Database Traffic from VPC");
-
-            return databaseSecurityGroup;
-        }
-
-    private String getDatabaseJDBCConnectionString(String databaseUrl){
-        return "jdbc-secretsmanager:postgresql://" + databaseUrl + ":5432/unicorns";
-        // return "jdbc:postgresql://" + databaseUrl + ":5432/unicorns";
-    }
-
-    private EventBus createEventBus() {
-        return EventBus.Builder.create(this, "UnicornEventBus")
-            .eventBusName("unicorns")
-            .build();
+        return dbCluster;
     }
 }

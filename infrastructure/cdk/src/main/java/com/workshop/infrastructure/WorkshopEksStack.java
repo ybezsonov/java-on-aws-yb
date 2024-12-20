@@ -17,7 +17,12 @@ import software.amazon.awscdk.services.iam.ServicePrincipal;
 import software.amazon.awscdk.services.eks.CfnAccessEntry;
 import software.amazon.awscdk.services.eks.CfnAccessEntry.AccessScopeProperty;
 import software.amazon.awscdk.services.eks.CfnPodIdentityAssociation;
+import software.amazon.awscdk.services.eks.ICluster;
+import software.amazon.awscdk.services.eks.Cluster;
+import software.amazon.awscdk.services.eks.ClusterAttributes;
+import software.amazon.awscdk.services.eks.ServiceAccountOptions;
 import software.amazon.awscdk.services.eks.CfnAccessEntry.AccessPolicyProperty;
+import software.amazon.awscdk.cdk.lambdalayer.kubectl.v31.KubectlV31Layer;
 
 import software.constructs.Construct;
 import java.util.Arrays;
@@ -36,10 +41,10 @@ public class WorkshopEksStack extends Stack {
 
         echo '=== Setup App ==='
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
-        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-kubeconfig.sh"
-        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
-        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-deploy-app.sh"
-        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-cleanup-app.sh"
+        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-setup.sh"
+        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
+        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-deploy-app.sh"
+        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-cleanup-app.sh"
         """;
 
     public WorkshopEksStack(final Construct scope, final String id) {
@@ -64,6 +69,7 @@ public class WorkshopEksStack extends Stack {
         ideProps.setBootstrapScript(bootstrapScript);
         ideProps.setVpc(vpc);
         ideProps.setRole(ideRole);
+        ideProps.setEnableAppSecurityGroup(true);
         ideProps.setExtensions(Arrays.asList(
             // "amazonwebservices.aws-toolkit-vscode",
             // "amazonwebservices.amazon-q-vscode",
@@ -131,10 +137,18 @@ public class WorkshopEksStack extends Stack {
             .build();
         podIdentityAssociation.getNode().addDependency(workshopEKSCluster);
 
-        // var kubeconfigCommandOutput = CfnOutput.Builder.create(this, "KubeconfigCommand")
-        //     .value(String.format("aws eks --region %s update-kubeconfig --name %s", region, eksClusterName))
-        //     .description("Command to update kubeconfig")
-        //     .build();
-        // kubeconfigCommandOutput.getNode().addDependency(workshopEKSCluster);
+        ICluster importedCluster = Cluster.fromClusterAttributes(this, "Eks", ClusterAttributes.builder()
+            .openIdConnectProvider(workshopEKSCluster.getProvider())
+            .clusterName("unicorn-store")
+            .kubectlRoleArn(ideRole.getRoleArn())
+            .kubectlLayer(new KubectlV31Layer(this, "UnicornStoreClusterKubectlLayer"))
+            .build());
+        importedCluster.getNode().addDependency(workshopEKSCluster);
+
+        var appServiceAccount =
+            importedCluster.addServiceAccount("UnicornStoreServiceAccount",
+                ServiceAccountOptions.builder().name("unicorn-store").namespace("default").build());
+        appServiceAccount.getNode().addDependency(importedCluster);
+        workshopCoreInfrastructure.getDatabaseSecret().grantRead(appServiceAccount);
     }
 }

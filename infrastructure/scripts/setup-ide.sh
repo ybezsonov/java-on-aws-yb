@@ -85,6 +85,13 @@ sudo systemctl restart docker
 # docker run --privileged --rm tonistiigi/binfmt --install all
 # docker buildx create --use --driver=docker-container
 
+echo "Installing docker compose ..."
+DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+mkdir -p $DOCKER_CONFIG/cli-plugins
+curl -SL https://github.com/docker/compose/releases/download/v2.32.0/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+docker compose version
+
 echo "Installing kubectl ..."
 # https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
 curl -sS -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.31.0/2024-09-12/bin/linux/amd64/kubectl
@@ -99,21 +106,21 @@ wget -nv -O eks-node-viewer https://github.com/awslabs/eks-node-viewer/releases/
 chmod +x eks-node-viewer
 sudo mv -v eks-node-viewer /usr/local/bin
 
-# echo "Installing eksctl ..."
-# ARCH=amd64
-# PLATFORM=$(uname -s)_$ARCH
-# curl -sS -sLO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
-# # (Optional) Verify checksum
-# curl -sS -sL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
-# tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
-# sudo mv /tmp/eksctl /usr/local/bin
-# eksctl version
+echo "Installing eksctl ..."
+ARCH=amd64
+PLATFORM=$(uname -s)_$ARCH
+curl -sS -sLO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+# (Optional) Verify checksum
+curl -sS -sL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+sudo mv /tmp/eksctl /usr/local/bin
+eksctl version
 
-# echo "Installing Helm ..."
-# curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-# chmod 700 get_helm.sh
-# ./get_helm.sh
-# helm version
+echo "Installing Helm ..."
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+helm version
 
 echo "Installing Session Manager plugin ..."
 curl -sS "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm" -o "session-manager-plugin.rpm"

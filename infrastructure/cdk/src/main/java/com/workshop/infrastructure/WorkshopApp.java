@@ -20,8 +20,6 @@ public class WorkshopApp {
         var suppressionWorkshop = List.of(
             new NagPackSuppression.Builder().id("AwsSolutions-VPC7").reason("Workshop environment does not need VPC flow logs").build(),
             new NagPackSuppression.Builder().id("AwsSolutions-EC23").reason("ELB is accessible from the Internet to allow application testing" ).build(),
-            new NagPackSuppression.Builder().id("AwsSolutions-IAM4").reason("AWS Managed policies are acceptable for the workshop" ).build(),
-            new NagPackSuppression.Builder().id("AwsSolutions-IAM5").reason("Workshop environment use CDK default execution role for Lambdas" ).build(),
             new NagPackSuppression.Builder().id("AwsSolutions-EC28").reason("Workshop instance doesn't need autoscaling").build(),
             new NagPackSuppression.Builder().id("AwsSolutions-EC29").reason("Workshop instance doesn't need autoscaling").build(),
             new NagPackSuppression.Builder().id("AwsSolutions-SMG4").reason("Ephemeral workshop environment does not need to rotate secrets").build(),
@@ -33,9 +31,13 @@ public class WorkshopApp {
             new NagPackSuppression.Builder().id("AwsSolutions-RDS2").reason("Workshop environment is ephemeral and does not need encryption").build(),
             new NagPackSuppression.Builder().id("AwsSolutions-RDS6").reason("Workshop environment uses user/password authentication").build(),
             new NagPackSuppression.Builder().id("AwsSolutions-RDS10").reason("Workshop environment is ephemeral and the database should be deleted by the end of the workshop").build(),
-            new NagPackSuppression.Builder().id("AwsSolutions-EKS1").reason("Workshop non-sensitive EKS cluster uses public access" ).build()
+            new NagPackSuppression.Builder().id("AwsSolutions-IAM4").reason("AWS Managed policies are acceptable for the workshop" ).build(),
+            new NagPackSuppression.Builder().id("AwsSolutions-IAM5").reason("Workshop environment use CDK default execution role for Kubectl Lamdas" ).build(),
+            new NagPackSuppression.Builder().id("AwsSolutions-L1").reason("Workshop environment use CDK default Labdas for Kubectl" ).build(),
+            new NagPackSuppression.Builder().id("AwsSolutions-EKS1").reason("Workshop non-sensitive EKS cluster uses public access" ).build(),
+            new NagPackSuppression.Builder().id("CdkNagValidationFailure").reason("Intrinsic function is used for Workshop definition").build()
         );
-        NagSuppressions.addStackSuppressions(WorkshopEksStack, suppressionWorkshop);
+        NagSuppressions.addStackSuppressions(WorkshopEksStack, suppressionWorkshop, true);
 
         app.synth();
     }
