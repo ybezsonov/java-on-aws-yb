@@ -11,18 +11,21 @@ import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.DefaultStackSynthesizer;
 import software.amazon.awscdk.DefaultStackSynthesizerProps;
 import software.amazon.awscdk.services.ec2.SecurityGroup;
+import software.amazon.awscdk.services.ec2.SubnetSelection;
+import software.amazon.awscdk.services.ec2.SubnetType;
 import software.amazon.awscdk.services.ec2.Port;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
 import software.amazon.awscdk.services.eks.CfnAccessEntry;
 import software.amazon.awscdk.services.eks.CfnAccessEntry.AccessScopeProperty;
-import software.amazon.awscdk.services.eks.CfnPodIdentityAssociation;
-import software.amazon.awscdk.services.eks.ICluster;
-import software.amazon.awscdk.services.eks.Cluster;
-import software.amazon.awscdk.services.eks.ClusterAttributes;
-import software.amazon.awscdk.services.eks.ServiceAccountOptions;
 import software.amazon.awscdk.services.eks.CfnAccessEntry.AccessPolicyProperty;
-import software.amazon.awscdk.cdk.lambdalayer.kubectl.v31.KubectlV31Layer;
+import software.amazon.awscdk.services.eks.CfnPodIdentityAssociation;
+import software.amazon.awscdk.services.apprunner.alpha.VpcConnector;
+// import software.amazon.awscdk.services.eks.ICluster;
+// import software.amazon.awscdk.services.eks.Cluster;
+// import software.amazon.awscdk.services.eks.ClusterAttributes;
+// import software.amazon.awscdk.services.eks.ServiceAccountOptions;
+// import software.amazon.awscdk.cdk.lambdalayer.kubectl.v31.KubectlV31Layer;
 
 import software.constructs.Construct;
 import java.util.Arrays;
@@ -132,23 +135,30 @@ public class WorkshopEksStack extends Stack {
         var podIdentityAssociation = CfnPodIdentityAssociation.Builder.create(this, "CfnPodIdentityAssociationDefault")
             .clusterName(eksClusterName)
             .namespace("default")
-            .roleArn("arn:aws:iam::" + Stack.of(this).getAccount() + ":role/unicorn-store-eks-pod-role")
+            .roleArn("arn:aws:iam::" + Stack.of(this).getAccount() + ":role/unicornstore-eks-pod-role")
             .serviceAccount("default")
             .build();
         podIdentityAssociation.getNode().addDependency(workshopEKSCluster);
 
-        ICluster importedCluster = Cluster.fromClusterAttributes(this, "Eks", ClusterAttributes.builder()
-            .openIdConnectProvider(workshopEKSCluster.getProvider())
-            .clusterName("unicorn-store")
-            .kubectlRoleArn(ideRole.getRoleArn())
-            .kubectlLayer(new KubectlV31Layer(this, "UnicornStoreClusterKubectlLayer"))
-            .build());
-        importedCluster.getNode().addDependency(workshopEKSCluster);
+        VpcConnector.Builder.create(this, "UnicornStoreVpcConnector")
+            .vpc(vpc)
+            .vpcSubnets(SubnetSelection.builder()
+                .subnetType(SubnetType.PRIVATE_WITH_EGRESS)
+                .build())
+            .vpcConnectorName("unicornstore-vpc-connector")
+            .build();
 
-        var appServiceAccount =
-            importedCluster.addServiceAccount("UnicornStoreServiceAccount",
-                ServiceAccountOptions.builder().name("unicorn-store").namespace("default").build());
-        appServiceAccount.getNode().addDependency(importedCluster);
-        workshopCoreInfrastructure.getDatabaseSecret().grantRead(appServiceAccount);
+        // ICluster importedCluster = Cluster.fromClusterAttributes(this, "Eks", ClusterAttributes.builder()
+        //     .openIdConnectProvider(workshopEKSCluster.getProvider())
+        //     .clusterName("unicorn-store")
+        //     .kubectlRoleArn(ideRole.getRoleArn())
+        //     .kubectlLayer(new KubectlV31Layer(this, "UnicornStoreClusterKubectlLayer"))
+        //     .build());
+        // importedCluster.getNode().addDependency(workshopEKSCluster);
+
+        // var appServiceAccount =
+        //     importedCluster.addServiceAccount("UnicornStoreServiceAccount",
+        //         ServiceAccountOptions.builder().name("unicorn-store").namespace("default").build());
+        // workshopCoreInfrastructure.getDatabaseSecret().grantRead(appServiceAccount);
     }
 }

@@ -894,8 +894,8 @@ Resources:
         description: Bootstrap IDE
         parameters:
           BootstrapScript:
-            description: (Optional) Custom bootstrap script to run.
             default: ""
+            description: (Optional) Custom bootstrap script to run.
             type: String
         mainSteps:
           - inputs:
@@ -1142,22 +1142,19 @@ Resources:
                       /opt/aws/bin/cfn-signal -e $exit_code '${waitConditionHandleUrl}'
 
                       exit $exit_code
-                    - customBootstrapScript: |
-                        date
-
-                        echo '=== Clone Git repository ==='
-                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
-                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
-
-                        echo '=== Setup IDE ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
-
-                        echo '=== Setup App ==='
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
-                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-setup.sh"
-                        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
-                        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-deploy-app.sh"
-                        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-cleanup-app.sh"
+                    - splashUrl: ""
+                      instanceIamRoleArn:
+                        Fn::GetAtt:
+                          - IdeRoleE8AB7A1E
+                          - Arn
+                      readmeUrl: ""
+                      waitConditionHandleUrl:
+                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
+                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
+                      domain: ""
+                      installGitea: echo bootstrapGitea was not provided
+                      terminalOnStartup: "true"
+                      environmentContentsZip: ""
                       passwordName:
                         Fn::Join:
                           - "-"
@@ -1179,22 +1176,25 @@ Resources:
                                         - Fn::Split:
                                             - ":"
                                             - Ref: VSCodeIdeIdePasswordSecret39AD78F3
-                      environmentContentsZip: ""
-                      terminalOnStartup: "true"
-                      installGitea: echo bootstrapGitea was not provided
-                      domain: ""
-                      extensions: ms-azuretools.vscode-docker,ms-kubernetes-tools.vscode-kubernetes-tools,vscjava.vscode-java-pack
-                      waitConditionHandleUrl:
-                        Ref: VSCodeIdeIdeBootstrapWaitConditionHandle0A599C82
-                      readmeUrl: ""
-                      instanceIamRoleArn:
-                        Fn::GetAtt:
-                          - IdeRoleE8AB7A1E
-                          - Arn
-                      splashUrl: ""
+                      customBootstrapScript: |
+                        date
+
+                        echo '=== Clone Git repository ==='
+                        sudo -H -u ec2-user bash -c "git clone https://github.com/ybezsonov/java-on-aws-yb ~/java-on-aws/"
+                        sudo -H -u ec2-user bash -c "cd ~/java-on-aws && git checkout refactor"
+
+                        echo '=== Setup IDE ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
+
+                        echo '=== Setup App ==='
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
+                        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-setup.sh"
+                        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
+                        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-deploy-app.sh"
+                        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-cleanup-app.sh"
+                      codeServerVersion: 4.96.1
                       instanceIamRoleName:
                         Ref: IdeRoleE8AB7A1E
-                      codeServerVersion: 4.96.1
             name: IdeBootstrapFunction
             action: aws:runShellScript
       DocumentFormat: YAML
@@ -1332,10 +1332,10 @@ Resources:
           - Arn
       InstanceId:
         Ref: VSCodeIdeIdeEC2Instance846AE373
-      SsmDocument:
-        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
       LogGroupName:
         Ref: VSCodeIdeIdeLogGroup364F2B78
+      SsmDocument:
+        Ref: VSCodeIdeIdeBootstrapDocument8DDB05AD
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
   WorkshopEksStackpostgres52CD6289:
@@ -1687,7 +1687,7 @@ Resources:
             Resource:
               Ref: WorkshopEksStackpostgres52CD6289
         Version: "2012-10-17"
-  WorkshopEksStackunicornstoreeksesorole9CD03E52:
+  WorkshopEksStackUnicornStoreEksEsoRole249F10D3:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -1700,7 +1700,7 @@ Resources:
               Service: pods.eks.amazonaws.com
         Version: "2012-10-17"
       RoleName: unicornstore-eks-eso-role
-  WorkshopEksStackunicornstoreeksesosmroleED2E4145:
+  WorkshopEksStackUnicornStoreEksEsoSmRoleE04438C5:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -1712,7 +1712,7 @@ Resources:
             Principal:
               AWS:
                 Fn::GetAtt:
-                  - WorkshopEksStackunicornstoreeksesorole9CD03E52
+                  - WorkshopEksStackUnicornStoreEksEsoRole249F10D3
                   - Arn
         Version: "2012-10-17"
       ManagedPolicyArns:
@@ -1885,73 +1885,6 @@ Resources:
       UpgradePolicy:
         SupportType: STANDARD
       Version: "1.31"
-  unicornstoreEkdClusterProviderD7729F15:
-    Type: Custom::AWSCDKOpenIdConnectProvider
-    Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - CustomAWSCDKOpenIdConnectProviderCustomResourceProviderHandlerF2C543E0
-          - Arn
-      ClientIDList:
-        - sts.amazonaws.com
-      Url:
-        Fn::GetAtt:
-          - unicornstoreEKSCluster593038F7
-          - OpenIdConnectIssuerUrl
-      CodeHash: 2926656cdb97b26d98f8b957b0d3f7326b458679745f2817e50333a21767350c
-    DependsOn:
-      - unicornstoreEKSCluster593038F7
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
-  CustomAWSCDKOpenIdConnectProviderCustomResourceProviderRole517FED65:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-      ManagedPolicyArns:
-        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: Inline
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Resource: "*"
-                Action:
-                  - iam:CreateOpenIDConnectProvider
-                  - iam:DeleteOpenIDConnectProvider
-                  - iam:UpdateOpenIDConnectProviderThumbprint
-                  - iam:AddClientIDToOpenIDConnectProvider
-                  - iam:RemoveClientIDFromOpenIDConnectProvider
-  CustomAWSCDKOpenIdConnectProviderCustomResourceProviderHandlerF2C543E0:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket:
-          Fn::Sub: cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}
-        S3Key: 2926656cdb97b26d98f8b957b0d3f7326b458679745f2817e50333a21767350c.zip
-      Timeout: 900
-      MemorySize: 128
-      Handler: __entrypoint__.handler
-      Role:
-        Fn::GetAtt:
-          - CustomAWSCDKOpenIdConnectProviderCustomResourceProviderRole517FED65
-          - Arn
-      Runtime:
-        Fn::FindInMap:
-          - LatestNodeRuntimeMap
-          - Ref: AWS::Region
-          - value
-    DependsOn:
-      - CustomAWSCDKOpenIdConnectProviderCustomResourceProviderRole517FED65
-    Metadata:
-      aws:asset:path: asset.2926656cdb97b26d98f8b957b0d3f7326b458679745f2817e50333a21767350c
-      aws:asset:property: Code
   IdeRoleEKSAccessEntry:
     Type: AWS::EKS::AccessEntry
     Properties:
@@ -1965,7 +1898,6 @@ Resources:
           - IdeRoleE8AB7A1E
           - Arn
     DependsOn:
-      - unicornstoreEkdClusterProviderD7729F15
       - unicornstoreEKSCluster593038F7
       - unicornstoreEKSClusterNodeRole8829D9B6
       - unicornstoreEKSClusterRole6494682A
@@ -1984,7 +1916,6 @@ Resources:
             - Ref: AWS::AccountId
             - :role/WSParticipantRole
     DependsOn:
-      - unicornstoreEkdClusterProviderD7729F15
       - unicornstoreEKSCluster593038F7
       - unicornstoreEKSClusterNodeRole8829D9B6
       - unicornstoreEKSClusterRole6494682A
@@ -1998,198 +1929,33 @@ Resources:
           - ""
           - - "arn:aws:iam::"
             - Ref: AWS::AccountId
-            - :role/unicorn-store-eks-pod-role
+            - :role/unicornstore-eks-pod-role
       ServiceAccount: default
     DependsOn:
-      - unicornstoreEkdClusterProviderD7729F15
       - unicornstoreEKSCluster593038F7
       - unicornstoreEKSClusterNodeRole8829D9B6
       - unicornstoreEKSClusterRole6494682A
-  UnicornStoreClusterKubectlLayerD93EADB0:
-    Type: AWS::Lambda::LayerVersion
+  UnicornStoreVpcConnectorSecurityGroup699F929E:
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      Content:
-        S3Bucket:
-          Fn::Sub: cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}
-        S3Key: f3c812b299b0759c937b41e39d3451f5cc61279c2ec9ee791fac08ba1e56508b.zip
-      Description: /opt/kubectl/kubectl 1.31.0; /opt/helm/helm 3.16.1
-      LicenseInfo: Apache-2.0
-    Metadata:
-      aws:asset:path: asset.f3c812b299b0759c937b41e39d3451f5cc61279c2ec9ee791fac08ba1e56508b.zip
-      aws:asset:is-bundled: false
-      aws:asset:property: Content
-  EksUnicornStoreServiceAccountConditionJsonA912C7A6:
-    Type: Custom::AWSCDKCfnJson
+      GroupDescription: WorkshopEksStack/UnicornStoreVpcConnector/SecurityGroup
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      VpcId:
+        Ref: WorkshopVpcB0E7649D
+  UnicornStoreVpcConnectorA4D72F1E:
+    Type: AWS::AppRunner::VpcConnector
     Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - AWSCDKCfnUtilsProviderCustomResourceProviderHandlerCF82AA57
-          - Arn
-      Value:
-        Fn::Join:
-          - ""
-          - - '{"'
-            - Fn::Select:
-                - 1
-                - Fn::Split:
-                    - :oidc-provider/
-                    - Ref: unicornstoreEkdClusterProviderD7729F15
-            - :aud":"sts.amazonaws.com","
-            - Fn::Select:
-                - 1
-                - Fn::Split:
-                    - :oidc-provider/
-                    - Ref: unicornstoreEkdClusterProviderD7729F15
-            - :sub":"system:serviceaccount:default:unicorn-store"}
-    DependsOn:
-      - EksUnicornStoreServiceAccountmanifestUnicornStoreServiceAccountServiceAccountResource199B1407
-      - EksUnicornStoreServiceAccountRoleDefaultPolicyBF4367BD
-      - EksUnicornStoreServiceAccountRole4F34346D
-      - unicornstoreEkdClusterProviderD7729F15
-      - unicornstoreEKSCluster593038F7
-      - unicornstoreEKSClusterNodeRole8829D9B6
-      - unicornstoreEKSClusterRole6494682A
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
-  EksUnicornStoreServiceAccountRole4F34346D:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: sts:AssumeRoleWithWebIdentity
-            Condition:
-              StringEquals:
-                Fn::GetAtt:
-                  - EksUnicornStoreServiceAccountConditionJsonA912C7A6
-                  - Value
-            Effect: Allow
-            Principal:
-              Federated:
-                Ref: unicornstoreEkdClusterProviderD7729F15
-        Version: "2012-10-17"
-    DependsOn:
-      - EksUnicornStoreServiceAccountConditionJsonA912C7A6
-      - EksUnicornStoreServiceAccountmanifestUnicornStoreServiceAccountServiceAccountResource199B1407
-      - EksUnicornStoreServiceAccountRoleDefaultPolicyBF4367BD
-      - unicornstoreEkdClusterProviderD7729F15
-      - unicornstoreEKSCluster593038F7
-      - unicornstoreEKSClusterNodeRole8829D9B6
-      - unicornstoreEKSClusterRole6494682A
-  EksUnicornStoreServiceAccountRoleDefaultPolicyBF4367BD:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyDocument:
-        Statement:
-          - Action:
-              - secretsmanager:DescribeSecret
-              - secretsmanager:GetSecretValue
-            Effect: Allow
-            Resource:
-              Ref: WorkshopEksStackpostgres52CD6289
-        Version: "2012-10-17"
-      PolicyName: EksUnicornStoreServiceAccountRoleDefaultPolicyBF4367BD
-      Roles:
-        - Ref: EksUnicornStoreServiceAccountRole4F34346D
-    DependsOn:
-      - EksUnicornStoreServiceAccountConditionJsonA912C7A6
-      - EksUnicornStoreServiceAccountmanifestUnicornStoreServiceAccountServiceAccountResource199B1407
-      - EksUnicornStoreServiceAccountRole4F34346D
-      - unicornstoreEkdClusterProviderD7729F15
-      - unicornstoreEKSCluster593038F7
-      - unicornstoreEKSClusterNodeRole8829D9B6
-      - unicornstoreEKSClusterRole6494682A
-  EksUnicornStoreServiceAccountmanifestUnicornStoreServiceAccountServiceAccountResource199B1407:
-    Type: Custom::AWSCDK-EKS-KubernetesResource
-    Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - WorkshopEksStackEks9A0A09D5KubectlProviderNestedStackWorkshopEksStackEks9A0A09D5KubectlProviderNestedStackResource1A551285
-          - Outputs.WorkshopEksStackWorkshopEksStackEks9A0A09D5KubectlProviderframeworkonEvent950CA440Arn
-      Manifest:
-        Fn::Join:
-          - ""
-          - - '[{"apiVersion":"v1","kind":"ServiceAccount","metadata":{"name":"unicorn-store","namespace":"default","labels":{"aws.cdk.eks/prune-c890b52c2f2f7591ce0035aae6b5b9fd90d21afa44":"","app.kubernetes.io/name":"unicorn-store"},"annotations":{"eks.amazonaws.com/role-arn":"'
-            - Fn::GetAtt:
-                - EksUnicornStoreServiceAccountRole4F34346D
-                - Arn
-            - '"}}}]'
-      ClusterName: unicorn-store
-      RoleArn:
-        Fn::GetAtt:
-          - IdeRoleE8AB7A1E
-          - Arn
-      PruneLabel: aws.cdk.eks/prune-c890b52c2f2f7591ce0035aae6b5b9fd90d21afa44
-    DependsOn:
-      - EksUnicornStoreServiceAccountConditionJsonA912C7A6
-      - EksUnicornStoreServiceAccountRoleDefaultPolicyBF4367BD
-      - EksUnicornStoreServiceAccountRole4F34346D
-      - unicornstoreEkdClusterProviderD7729F15
-      - unicornstoreEKSCluster593038F7
-      - unicornstoreEKSClusterNodeRole8829D9B6
-      - unicornstoreEKSClusterRole6494682A
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
-  AWSCDKCfnUtilsProviderCustomResourceProviderRoleFE0EE867:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-      ManagedPolicyArns:
-        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-  AWSCDKCfnUtilsProviderCustomResourceProviderHandlerCF82AA57:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket:
-          Fn::Sub: cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}
-        S3Key: c398d076c966a47ee4ef862fbaf5ea530bf035b867a0195292c99f77b323ed80.zip
-      Timeout: 900
-      MemorySize: 128
-      Handler: __entrypoint__.handler
-      Role:
-        Fn::GetAtt:
-          - AWSCDKCfnUtilsProviderCustomResourceProviderRoleFE0EE867
-          - Arn
-      Runtime:
-        Fn::FindInMap:
-          - LatestNodeRuntimeMap
-          - Ref: AWS::Region
-          - value
-    DependsOn:
-      - AWSCDKCfnUtilsProviderCustomResourceProviderRoleFE0EE867
-    Metadata:
-      aws:asset:path: asset.c398d076c966a47ee4ef862fbaf5ea530bf035b867a0195292c99f77b323ed80
-      aws:asset:property: Code
-  WorkshopEksStackEks9A0A09D5KubectlProviderNestedStackWorkshopEksStackEks9A0A09D5KubectlProviderNestedStackResource1A551285:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        referencetoWorkshopEksStackIdeRoleC4BF6706Arn:
-          Fn::GetAtt:
-            - IdeRoleE8AB7A1E
-            - Arn
-        referencetoWorkshopEksStackUnicornStoreClusterKubectlLayerB430EA59Ref:
-          Ref: UnicornStoreClusterKubectlLayerD93EADB0
-      TemplateURL:
-        Fn::Join:
-          - ""
-          - - https://s3.
-            - Ref: AWS::Region
-            - "."
-            - Ref: AWS::URLSuffix
-            - /
-            - Fn::Sub: cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}
-            - /a3d32ebb6d2a4663bb066bdf1140aed92ad59b9c8bcf24f2504db8959cb8567e.json
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
-    Metadata:
-      aws:asset:path: WorkshopEksStackWorkshopEksStackEks9A0A09D5KubectlProvider0F353D05.nested.template.json
-      aws:asset:property: TemplateURL
+      SecurityGroups:
+        - Fn::GetAtt:
+            - UnicornStoreVpcConnectorSecurityGroup699F929E
+            - GroupId
+      Subnets:
+        - Ref: WorkshopVpcPrivateSubnet1SubnetD3A11721
+        - Ref: WorkshopVpcPrivateSubnet2Subnet1032CD0C
+      VpcConnectorName: unicornstore-vpc-connector
 Outputs:
   VSCodeIdeIdeUrl087AD986:
     Description: Workshop IDE Url
@@ -2210,74 +1976,4 @@ Parameters:
   SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
-Mappings:
-  LatestNodeRuntimeMap:
-    af-south-1:
-      value: nodejs20.x
-    ap-east-1:
-      value: nodejs20.x
-    ap-northeast-1:
-      value: nodejs20.x
-    ap-northeast-2:
-      value: nodejs20.x
-    ap-northeast-3:
-      value: nodejs20.x
-    ap-south-1:
-      value: nodejs20.x
-    ap-south-2:
-      value: nodejs20.x
-    ap-southeast-1:
-      value: nodejs20.x
-    ap-southeast-2:
-      value: nodejs20.x
-    ap-southeast-3:
-      value: nodejs20.x
-    ap-southeast-4:
-      value: nodejs20.x
-    ap-southeast-5:
-      value: nodejs20.x
-    ap-southeast-7:
-      value: nodejs20.x
-    ca-central-1:
-      value: nodejs20.x
-    ca-west-1:
-      value: nodejs20.x
-    cn-north-1:
-      value: nodejs18.x
-    cn-northwest-1:
-      value: nodejs18.x
-    eu-central-1:
-      value: nodejs20.x
-    eu-central-2:
-      value: nodejs20.x
-    eu-north-1:
-      value: nodejs20.x
-    eu-south-1:
-      value: nodejs20.x
-    eu-south-2:
-      value: nodejs20.x
-    eu-west-1:
-      value: nodejs20.x
-    eu-west-2:
-      value: nodejs20.x
-    eu-west-3:
-      value: nodejs20.x
-    il-central-1:
-      value: nodejs20.x
-    me-central-1:
-      value: nodejs20.x
-    me-south-1:
-      value: nodejs20.x
-    mx-central-1:
-      value: nodejs20.x
-    sa-east-1:
-      value: nodejs20.x
-    us-east-1:
-      value: nodejs20.x
-    us-east-2:
-      value: nodejs20.x
-    us-west-1:
-      value: nodejs20.x
-    us-west-2:
-      value: nodejs20.x
 

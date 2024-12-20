@@ -169,13 +169,13 @@ public class CoreInfrastructure extends Construct {
 
         ServicePrincipal eksPods = new ServicePrincipal("pods.eks.amazonaws.com");
         // External Secrets Operator roles
-        Role unicornStoreEksEsoRole = Role.Builder.create(this, "unicornstore-eks-eso-role")
+        Role unicornStoreEksEsoRole = Role.Builder.create(this, "UnicornStoreEksEsoRole")
             .roleName("unicornstore-eks-eso-role")
             .assumedBy(eksPods.withSessionTags())
             .build();
         ArnPrincipal unicornStoreEksEsoRolePrincipal = new ArnPrincipal(unicornStoreEksEsoRole.getRoleArn());
 
-        Role unicornStoreEksEsoSmRole = Role.Builder.create(this, "unicornstore-eks-eso-sm-role")
+        Role unicornStoreEksEsoSmRole = Role.Builder.create(this, "UnicornStoreEksEsoSmRole")
             .roleName("unicornstore-eks-eso-sm-role")
             .assumedBy(unicornStoreEksEsoRolePrincipal.withSessionTags())
             .build();
