@@ -46,7 +46,7 @@ public class WorkshopEksStack extends Stack {
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
 
         echo '=== Additional Setup ==='
-        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
+        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
         # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-setup.sh"
         # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-deploy-app.sh"
@@ -136,13 +136,13 @@ public class WorkshopEksStack extends Stack {
             .build();
         participantRoleEKSAccessEntry.getNode().addDependency(workshopEKSCluster);
 
-        var podIdentityAssociation = CfnPodIdentityAssociation.Builder.create(this, "CfnPodIdentityAssociationDefault")
-            .clusterName(eksClusterName)
-            .namespace("default")
-            .roleArn("arn:aws:iam::" + Stack.of(this).getAccount() + ":role/unicornstore-eks-pod-role")
-            .serviceAccount("default")
-            .build();
-        podIdentityAssociation.getNode().addDependency(workshopEKSCluster);
+        // var podIdentityAssociation = CfnPodIdentityAssociation.Builder.create(this, "CfnPodIdentityAssociationDefault")
+        //     .clusterName(eksClusterName)
+        //     .namespace("default")
+        //     .roleArn("arn:aws:iam::" + Stack.of(this).getAccount() + ":role/unicornstore-eks-pod-role")
+        //     .serviceAccount("default")
+        //     .build();
+        // podIdentityAssociation.getNode().addDependency(workshopEKSCluster);
 
         VpcConnector.Builder.create(this, "UnicornStoreVpcConnector")
             .vpc(vpc)

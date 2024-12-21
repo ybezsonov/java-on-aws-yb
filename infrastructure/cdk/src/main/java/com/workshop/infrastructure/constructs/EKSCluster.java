@@ -125,7 +125,7 @@ public class EKSCluster extends Construct {
             .roleArn(clusterRole.getRoleArn())
             .accessConfig(AccessConfigProperty.builder() // use API mode for cluster access
                 .authenticationMode("API")
-                .bootstrapClusterCreatorAdminPermissions(false)
+                .bootstrapClusterCreatorAdminPermissions(true)
                 .build())
             .logging(LoggingProperty.builder()
                 .clusterLogging(ClusterLoggingProperty.builder()

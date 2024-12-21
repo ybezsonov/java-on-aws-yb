@@ -36,7 +36,6 @@ public class CoreInfrastructure extends Construct {
     private DatabaseSecret databaseSecret;
     private Secret secretPassword;
     private StringParameter paramJdbc;
-    private StringParameter paramJdbcSM;
     private EventBus eventBridge;
     private Repository ecrRepository;
 
@@ -48,9 +47,6 @@ public class CoreInfrastructure extends Construct {
     }
     public StringParameter getParamJdbc() {
         return paramJdbc;
-    }
-    public StringParameter getParamJdbcSM() {
-        return paramJdbcSM;
     }
     public EventBus getEventBridge() {
         return eventBridge;
@@ -80,15 +76,6 @@ public class CoreInfrastructure extends Construct {
             .stringValue("jdbc:postgresql://" + databaseUrl + ":5432/unicorns")
             .tier(ParameterTier.STANDARD)
             .build();
-        paramJdbc.getNode().addDependency(database);
-        paramJdbcSM = StringParameter.Builder.create(this, "SsmParameterDatabaseJDBCConnectionStringSM")
-            .allowedPattern(".*")
-            .description("databaseJDBCSMConnectionString")
-            .parameterName("databaseJDBCSMConnectionString")
-            .stringValue("jdbc-secretsmanager:postgresql://" + databaseUrl + ":5432/unicorns")
-            .tier(ParameterTier.STANDARD)
-            .build();
-        paramJdbcSM.getNode().addDependency(database);
 
         eventBridge = EventBus.Builder.create(this, "UnicornEventBus")
             .eventBusName("unicorns")
@@ -113,7 +100,6 @@ public class CoreInfrastructure extends Construct {
         databaseSecret.grantRead(unicornStoreApprunnerRole);
         secretPassword.grantRead(unicornStoreApprunnerRole);
         paramJdbc.grantRead(unicornStoreApprunnerRole);
-        paramJdbcSM.grantRead(unicornStoreApprunnerRole);
 
         var appRunnerECRAccessRole = Role.Builder.create(this, "UnicornStoreApprunnerEcrAccessRole")
             .roleName("unicornstore-apprunner-ecr-access-role")
@@ -152,7 +138,6 @@ public class CoreInfrastructure extends Construct {
         databaseSecret.grantRead(unicornStoreEscTaskRole);
         secretPassword.grantRead(unicornStoreEscTaskRole);
         paramJdbc.grantRead(unicornStoreEscTaskRole);
-        paramJdbcSM.grantRead(unicornStoreEscTaskRole);
 
         Role unicornStoreEscTaskExecutionRole = Role.Builder.create(this, "UnicornStoreEcsTaskExecutionRole")
             .roleName("unicornstore-ecs-task-execution-role")
@@ -175,7 +160,6 @@ public class CoreInfrastructure extends Construct {
         databaseSecret.grantRead(unicornStoreEscTaskExecutionRole);
         secretPassword.grantRead(unicornStoreEscTaskExecutionRole);
         paramJdbc.grantRead(unicornStoreEscTaskExecutionRole);
-        paramJdbcSM.grantRead(unicornStoreEscTaskExecutionRole);
 
         // Roles - EKS
         var dbSecretPolicy = ManagedPolicy.Builder.create(this, "UnicornStoreDbSecretsManagerPolicy")
@@ -229,7 +213,6 @@ public class CoreInfrastructure extends Construct {
         eventBridge.grantPutEventsTo(unicornStoreEksPodRole);
         databaseSecret.grantRead(unicornStoreEksPodRole);
         paramJdbc.grantRead(unicornStoreEksPodRole);
-        paramJdbcSM.grantRead(unicornStoreEksPodRole);
     }
 
     private DatabaseSecret createDatabaseSecret() {
