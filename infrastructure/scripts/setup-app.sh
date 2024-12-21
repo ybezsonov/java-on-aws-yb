@@ -3,7 +3,7 @@ set -e
 APP_NAME=${1:-"unicorn-store-spring"}
 
 mkdir -p ~/environment/${APP_NAME}
-rsync -aq ~/java-on-aws-yb/labs/unicorn-store/software/${APP_NAME}/ ~/environment/${APP_NAME} --exclude target --exclude src/test 1>/dev/null
+rsync -aq ~/java-on-aws/labs/unicorn-store/software/${APP_NAME}/ ~/environment/${APP_NAME} --exclude target --exclude src/test 1>/dev/null
 cp -R ~/java-on-aws/labs/unicorn-store/software/dockerfiles ~/environment/${APP_NAME}
 
 echo "Seting up the local git repository ..."
@@ -13,7 +13,7 @@ git config --global user.email "you@workshops.aws"
 git config --global user.name "Your Name"
 
 echo "target" >> .gitignore
-echo "target/*" >> .gitignore
+# echo "target/*" >> .gitignore
 echo "crac-files/*" >> .gitignore
 echo "*.jar" >> .gitignore
 git add . 1>/dev/null

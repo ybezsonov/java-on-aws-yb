@@ -35,6 +35,30 @@ spec:
   controller: eks.amazonaws.com/alb
 EOF
 
+cat <<EOF | kubectl create -f -
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: dedicated
+spec:
+  weight: 50
+  template:
+    spec:
+      nodeClassRef:
+        group: eks.amazonaws.com
+        kind: NodeClass
+        name: default
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values: ["c5.xlarge"]
+  limits:
+    cpu: 20
+EOF
+
 # echo "Deploying secrets-store-csi-driver ..."
 # helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
 # helm install -n kube-system csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver --set syncSecret.enabled=true
