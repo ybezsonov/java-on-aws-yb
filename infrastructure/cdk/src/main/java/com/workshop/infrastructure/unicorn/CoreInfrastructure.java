@@ -1,6 +1,8 @@
 package com.workshop.infrastructure.unicorn;
 
 import software.amazon.awscdk.RemovalPolicy;
+import software.amazon.awscdk.SecretValue;
+import software.amazon.awscdk.SecretsManagerSecretOptions;
 import software.amazon.awscdk.services.ec2.Vpc;
 import software.amazon.awscdk.services.ec2.Port;
 import software.amazon.awscdk.services.ec2.Peer;
@@ -24,6 +26,7 @@ import software.amazon.awscdk.services.rds.DatabaseClusterEngine;
 import software.amazon.awscdk.services.rds.DatabaseSecret;
 import software.amazon.awscdk.services.ssm.ParameterTier;
 import software.amazon.awscdk.services.ssm.StringParameter;
+import software.amazon.awscdk.services.secretsmanager.Secret;
 
 import software.constructs.Construct;
 import java.util.List;
@@ -31,15 +34,23 @@ import java.util.List;
 public class CoreInfrastructure extends Construct {
 
     private DatabaseSecret databaseSecret;
+    private Secret secretPassword;
     private StringParameter paramJdbc;
+    private StringParameter paramJdbcSM;
     private EventBus eventBridge;
     private Repository ecrRepository;
 
     public DatabaseSecret getDatabaseSecret() {
         return databaseSecret;
     }
+    public Secret getSecretPassword() {
+        return secretPassword;
+    }
     public StringParameter getParamJdbc() {
         return paramJdbc;
+    }
+    public StringParameter getParamJdbcSM() {
+        return paramJdbcSM;
     }
     public EventBus getEventBridge() {
         return eventBridge;
@@ -52,6 +63,13 @@ public class CoreInfrastructure extends Construct {
         super(scope, id);
 
         databaseSecret = createDatabaseSecret();
+        // Separate password value for services which cannot get specific field from Secret json
+        secretPassword = Secret.Builder.create(this, "dbSecretPassword")
+            .secretName("unicornstore-db-secret-password")
+            .secretStringValue(SecretValue.secretsManager(databaseSecret.getSecretName(), SecretsManagerSecretOptions.builder().jsonField("password").build()))
+            .build();
+        secretPassword.getNode().addDependency(databaseSecret);
+
         var database = createDatabase(vpc, databaseSecret);
         var databaseUrl = database.getClusterEndpoint().getHostname();
 
@@ -63,6 +81,14 @@ public class CoreInfrastructure extends Construct {
             .tier(ParameterTier.STANDARD)
             .build();
         paramJdbc.getNode().addDependency(database);
+        paramJdbcSM = StringParameter.Builder.create(this, "SsmParameterDatabaseJDBCConnectionStringSM")
+            .allowedPattern(".*")
+            .description("databaseJDBCSMConnectionString")
+            .parameterName("databaseJDBCSMConnectionString")
+            .stringValue("jdbc-secretsmanager:postgresql://" + databaseUrl + ":5432/unicorns")
+            .tier(ParameterTier.STANDARD)
+            .build();
+        paramJdbcSM.getNode().addDependency(database);
 
         eventBridge = EventBus.Builder.create(this, "UnicornEventBus")
             .eventBusName("unicorns")
@@ -85,7 +111,9 @@ public class CoreInfrastructure extends Construct {
             .build());
         eventBridge.grantPutEventsTo(unicornStoreApprunnerRole);
         databaseSecret.grantRead(unicornStoreApprunnerRole);
+        secretPassword.grantRead(unicornStoreApprunnerRole);
         paramJdbc.grantRead(unicornStoreApprunnerRole);
+        paramJdbcSM.grantRead(unicornStoreApprunnerRole);
 
         var appRunnerECRAccessRole = Role.Builder.create(this, "UnicornStoreApprunnerEcrAccessRole")
             .roleName("unicornstore-apprunner-ecr-access-role")
@@ -122,7 +150,9 @@ public class CoreInfrastructure extends Construct {
 
         eventBridge.grantPutEventsTo(unicornStoreEscTaskRole);
         databaseSecret.grantRead(unicornStoreEscTaskRole);
+        secretPassword.grantRead(unicornStoreEscTaskRole);
         paramJdbc.grantRead(unicornStoreEscTaskRole);
+        paramJdbcSM.grantRead(unicornStoreEscTaskRole);
 
         Role unicornStoreEscTaskExecutionRole = Role.Builder.create(this, "UnicornStoreEcsTaskExecutionRole")
             .roleName("unicornstore-ecs-task-execution-role")
@@ -143,7 +173,9 @@ public class CoreInfrastructure extends Construct {
         unicornStoreEscTaskExecutionRole.addToPolicy(AWSOpenTelemetryPolicy);
 
         databaseSecret.grantRead(unicornStoreEscTaskExecutionRole);
+        secretPassword.grantRead(unicornStoreEscTaskExecutionRole);
         paramJdbc.grantRead(unicornStoreEscTaskExecutionRole);
+        paramJdbcSM.grantRead(unicornStoreEscTaskExecutionRole);
 
         // Roles - EKS
         var dbSecretPolicy = ManagedPolicy.Builder.create(this, "UnicornStoreDbSecretsManagerPolicy")
@@ -197,6 +229,7 @@ public class CoreInfrastructure extends Construct {
         eventBridge.grantPutEventsTo(unicornStoreEksPodRole);
         databaseSecret.grantRead(unicornStoreEksPodRole);
         paramJdbc.grantRead(unicornStoreEksPodRole);
+        paramJdbcSM.grantRead(unicornStoreEksPodRole);
     }
 
     private DatabaseSecret createDatabaseSecret() {

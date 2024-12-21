@@ -13,6 +13,9 @@ import software.amazon.awscdk.DefaultStackSynthesizerProps;
 import software.amazon.awscdk.services.ec2.SecurityGroup;
 import software.amazon.awscdk.services.ec2.SubnetSelection;
 import software.amazon.awscdk.services.ec2.SubnetType;
+import software.amazon.awscdk.services.ec2.InstanceClass;
+import software.amazon.awscdk.services.ec2.InstanceSize;
+import software.amazon.awscdk.services.ec2.InstanceType;
 import software.amazon.awscdk.services.ec2.Port;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
@@ -42,10 +45,10 @@ public class WorkshopEksStack extends Stack {
         echo '=== Setup IDE ==='
         sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-ide.sh"
 
-        echo '=== Setup App ==='
-        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
-        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-setup.sh"
+        echo '=== Additional Setup ==='
+        # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/setup-app.sh"
         # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-containerize.sh"
+        sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-setup.sh"
         # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-deploy-app.sh"
         # sudo -H -i -u ec2-user bash -c "~/java-on-aws/infrastructure/scripts/ws-eks-cleanup-app.sh"
         """;
@@ -73,6 +76,7 @@ public class WorkshopEksStack extends Stack {
         ideProps.setVpc(vpc);
         ideProps.setRole(ideRole);
         ideProps.setEnableAppSecurityGroup(true);
+        ideProps.setInstanceType(InstanceType.of(InstanceClass.M5, InstanceSize.XLARGE));
         ideProps.setExtensions(Arrays.asList(
             // "amazonwebservices.aws-toolkit-vscode",
             // "amazonwebservices.amazon-q-vscode",
